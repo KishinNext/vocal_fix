@@ -15,6 +15,11 @@ const preload = join(__dirname, './preload.js')
 const indexHtml = join(process.env.DIST, 'index.html')
 const settingsHtml = join(process.env.DIST, 'settings.html')
 
+app.setName('VocalFix');
+if (process.platform === 'darwin') {
+  app.dock.setIcon(join(process.env.PUBLIC || '', 'logo.png'));
+}
+
 app.whenReady().then(async () => {
   await initAI()
   const mainWindow = createWindow(preload, indexHtml)

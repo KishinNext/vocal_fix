@@ -186,7 +186,7 @@ function w(e, i) {
 var T = s(import.meta.url), E = a(T);
 process.env.DIST = o(E, "../dist"), process.env.PUBLIC = n.isPackaged ? process.env.DIST : o(process.env.DIST, "../public");
 var D = o(E, "./preload.js"), O = o(process.env.DIST, "index.html"), k = o(process.env.DIST, "settings.html");
-n.whenReady().then(async () => {
+n.setName("VocalFix"), process.platform === "darwin" && n.dock.setIcon(o(process.env.PUBLIC || "", "logo.png")), n.whenReady().then(async () => {
 	await g();
 	let e = x(D, O);
 	w(D, k), setInterval(async () => {
