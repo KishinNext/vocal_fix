@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.send('close-window'),
   minimizeWindow: () => ipcRenderer.send('minimize-window'),
   maximizeWindow: () => ipcRenderer.send('maximize-window'),
+  getModels: () => ipcRenderer.invoke('get-models'),
   sendAudioChunk: (pcmData: Int16Array) => ipcRenderer.send('audio-chunk', pcmData),
   sendAudioStop: () => ipcRenderer.send('audio-stop'),
   onTranscription: (callback: (text: string) => void) => {

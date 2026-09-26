@@ -23,6 +23,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Load available models
+  window.electronAPI?.getModels?.().then((models) => {
+    const sttSelect = document.getElementById('stt-model-select') as HTMLSelectElement;
+    const llmSelect = document.getElementById('llm-model-select') as HTMLSelectElement;
+    
+    if (sttSelect) {
+      sttSelect.innerHTML = '';
+      if (models.whisper.length === 0) {
+        sttSelect.innerHTML = '<option value="">No model found</option>';
+        sttSelect.disabled = true;
+      } else {
+        models.whisper.forEach(m => {
+          sttSelect.innerHTML += `<option class="bg-studio-surface text-studio-heading" value="${m}">${m}</option>`;
+        });
+      }
+    }
+    
+    if (llmSelect) {
+      llmSelect.innerHTML = '';
+      if (models.llama.length === 0) {
+        llmSelect.innerHTML = '<option value="">No model found</option>';
+        llmSelect.disabled = true;
+      } else {
+        models.llama.forEach(m => {
+          llmSelect.innerHTML += `<option class="bg-studio-surface text-studio-heading" value="${m}">${m}</option>`;
+        });
+      }
+    }
+  });
+
   // Stub recording functionality for now
   const recordBtn = document.getElementById('recordToggleBtn');
   let isListening = false;

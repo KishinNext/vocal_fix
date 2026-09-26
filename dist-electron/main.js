@@ -1,13 +1,11 @@
-import { BrowserWindow, app, ipcMain } from "electron";
-import path, { dirname, join } from "path";
-import { fileURLToPath } from "url";
-import { LlamaChatSession, getLlama } from "node-llama-cpp";
-import fs from "fs";
-//#region electron/ai.ts
-var __filename$1 = fileURLToPath(import.meta.url);
-var __dirname$1 = path.dirname(__filename$1);
-var MODELS_DIR = path.join(__dirname$1, "../../models");
-var AIManager = class {
+import { createRequire as e } from "node:module";
+import { BrowserWindow as t, app as n, ipcMain as r } from "electron";
+import i, { dirname as a, join as o } from "path";
+import { fileURLToPath as s } from "url";
+import { LlamaChatSession as c, getLlama as l } from "node-llama-cpp";
+import u from "fs";
+//#region \0rolldown/runtime.js
+var d = /* @__PURE__ */ e(import.meta.url), f = s(import.meta.url), p = i.dirname(f), m = i.join(p, "../../models"), h = new class {
 	llama = null;
 	llamaModel = null;
 	llamaContext = null;
@@ -16,226 +14,191 @@ var AIManager = class {
 	llamaModelPath;
 	language;
 	constructor() {
-		this.whisperModelPath = path.join(MODELS_DIR, "ggml-base.en.bin");
-		this.llamaModelPath = path.join(MODELS_DIR, "tinyllama-1.1b-chat-v1.0.q4_k_m.gguf");
-		this.language = "auto";
+		this.whisperModelPath = i.join(m, "ggml-base.en.bin"), this.llamaModelPath = i.join(m, "tinyllama-1.1b-chat-v1.0.q4_k_m.gguf"), this.language = "auto";
 	}
-	setWhisperModel(modelName) {
-		this.whisperModelPath = path.join(MODELS_DIR, modelName);
+	setWhisperModel(e) {
+		this.whisperModelPath = i.join(m, e);
 	}
-	setLanguage(lang) {
-		this.language = lang;
+	setLanguage(e) {
+		this.language = e;
 	}
-	async loadLlamaModel(modelName) {
-		this.llamaModelPath = path.join(MODELS_DIR, modelName);
-		await this.initLlama();
+	async loadLlamaModel(e) {
+		this.llamaModelPath = i.join(m, e), await this.initLlama();
 	}
 	async init() {
-		if (!fs.existsSync(this.whisperModelPath)) console.warn(`Whisper model not found at ${this.whisperModelPath}`);
-		await this.initLlama();
+		u.existsSync(this.whisperModelPath) || console.warn(`Whisper model not found at ${this.whisperModelPath}`), await this.initLlama();
 	}
 	async initLlama() {
-		if (!fs.existsSync(this.llamaModelPath)) {
+		if (!u.existsSync(this.llamaModelPath)) {
 			console.warn(`LLAMA model not found at ${this.llamaModelPath}`);
 			return;
 		}
 		try {
-			if (!this.llama) this.llama = await getLlama();
-			if (this.llamaContext && typeof this.llamaContext.dispose === "function") this.llamaContext.dispose();
-			if (this.llamaModel && typeof this.llamaModel.dispose === "function") this.llamaModel.dispose();
-			this.llamaModel = await this.llama.loadModel({ modelPath: this.llamaModelPath });
-			this.llamaContext = await this.llamaModel.createContext();
-			this.llamaSession = new LlamaChatSession({
+			this.llama ||= await l(), this.llamaContext && typeof this.llamaContext.dispose == "function" && this.llamaContext.dispose(), this.llamaModel && typeof this.llamaModel.dispose == "function" && this.llamaModel.dispose(), this.llamaModel = await this.llama.loadModel({ modelPath: this.llamaModelPath }), this.llamaContext = await this.llamaModel.createContext(), this.llamaSession = new c({
 				contextSequence: this.llamaContext.getSequence(),
 				systemPrompt: "You are an expert editor. Fix grammar and improve expression of the user's speech transcription without changing the meaning. Output only the corrected text."
-			});
-			console.log(`LLaMA initialized on Metal GPU with ${this.llamaModelPath}`);
+			}), console.log(`LLaMA initialized on Metal GPU with ${this.llamaModelPath}`);
 		} catch (e) {
 			console.error("Failed to init LLAMA", e);
 		}
 	}
-	async transcribeAudio(wavFilePath) {
-		if (!fs.existsSync(this.whisperModelPath)) throw new Error(`Whisper model not downloaded at ${this.whisperModelPath}`);
+	async transcribeAudio(e) {
+		if (!u.existsSync(this.whisperModelPath)) throw Error(`Whisper model not downloaded at ${this.whisperModelPath}`);
 		try {
-			const { whisper } = await import("whisper-node");
-			return (await whisper(wavFilePath, {
+			let { whisper: t } = await import("whisper-node");
+			return (await t(e, {
 				modelPath: this.whisperModelPath,
 				language: this.language
-			})).map((r) => r.speech).join(" ").trim();
+			})).map((e) => e.speech).join(" ").trim();
 		} catch (e) {
-			console.error("Whisper failed to load or transcribe, using fallback mock.", e);
-			return "Esta es una transcripción simulada porque Whisper no pudo compilar en este sistema.";
+			return console.error("Whisper failed to load or transcribe, using fallback mock.", e), "Esta es una transcripción simulada porque Whisper no pudo compilar en este sistema.";
 		}
 	}
-	async fixGrammar(text) {
-		if (!this.llamaSession) throw new Error("LLaMA model not loaded");
-		return (await this.llamaSession.prompt(text)).trim();
+	async fixGrammar(e) {
+		if (!this.llamaSession) throw Error("LLaMA model not loaded");
+		return (await this.llamaSession.prompt(e)).trim();
 	}
-};
-var aiManager = new AIManager();
-async function initAI() {
-	await aiManager.init();
+}();
+async function g() {
+	await h.init();
 }
-async function transcribeAudio(wavFilePath) {
-	return aiManager.transcribeAudio(wavFilePath);
+async function _(e) {
+	return h.transcribeAudio(e);
 }
-async function fixGrammar(text) {
-	return aiManager.fixGrammar(text);
+async function v(e) {
+	return h.fixGrammar(e);
 }
 //#endregion
 //#region electron/windows.ts
-var win = null;
-var settingsWin = null;
-function createWindow(preload, indexHtml) {
-	win = new BrowserWindow({
+var y = null, b = null;
+function x(e, n) {
+	return y = new t({
 		width: 1280,
 		height: 800,
 		minWidth: 1024,
 		minHeight: 600,
 		titleBarStyle: "hiddenInset",
-		icon: join(process.env.PUBLIC || "", "logo.png"),
+		icon: o(process.env.PUBLIC || "", "logo.png"),
 		webPreferences: {
-			preload,
-			nodeIntegration: false,
-			contextIsolation: true
+			preload: e,
+			nodeIntegration: !1,
+			contextIsolation: !0
 		}
-	});
-	win.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-		if (permission === "media") callback(true);
-		else callback(false);
-	});
-	if (process.env.VITE_DEV_SERVER_URL) win.loadURL(process.env.VITE_DEV_SERVER_URL);
-	else win.loadFile(indexHtml);
-	return win;
+	}), y.webContents.session.setPermissionRequestHandler((e, t, n) => {
+		n(t === "media");
+	}), process.env.VITE_DEV_SERVER_URL ? y.loadURL(process.env.VITE_DEV_SERVER_URL) : y.loadFile(n), y;
 }
-function createSettingsWindow(preload, settingsHtml) {
-	if (settingsWin) {
-		settingsWin.focus();
+function S(e, n) {
+	if (b) {
+		b.focus();
 		return;
 	}
-	settingsWin = new BrowserWindow({
+	b = new t({
 		width: 800,
 		height: 600,
 		minWidth: 800,
 		minHeight: 600,
 		titleBarStyle: "hiddenInset",
-		icon: join(process.env.PUBLIC || "", "logo.png"),
+		icon: o(process.env.PUBLIC || "", "logo.png"),
 		webPreferences: {
-			preload,
-			nodeIntegration: false,
-			contextIsolation: true
+			preload: e,
+			nodeIntegration: !1,
+			contextIsolation: !0
 		}
-	});
-	if (process.env.VITE_DEV_SERVER_URL) settingsWin.loadURL(`${process.env.VITE_DEV_SERVER_URL}settings.html`);
-	else settingsWin.loadFile(settingsHtml);
-	settingsWin.on("closed", () => {
-		settingsWin = null;
+	}), process.env.VITE_DEV_SERVER_URL ? b.loadURL(`${process.env.VITE_DEV_SERVER_URL}settings.html`) : b.loadFile(n), b.on("closed", () => {
+		b = null;
 	});
 }
 //#endregion
 //#region electron/audioService.ts
-function saveWavFile(audioChunks, tempDir) {
-	if (audioChunks.length === 0) return null;
-	const totalBuffer = Buffer.concat(audioChunks);
-	const wavPath = join(tempDir, `vocalfix_${Date.now()}.wav`);
-	const header = Buffer.alloc(44);
-	header.write("RIFF", 0);
-	header.writeUInt32LE(36 + totalBuffer.length, 4);
-	header.write("WAVE", 8);
-	header.write("fmt ", 12);
-	header.writeUInt32LE(16, 16);
-	header.writeUInt16LE(1, 20);
-	header.writeUInt16LE(1, 22);
-	header.writeUInt32LE(16e3, 24);
-	header.writeUInt32LE(32e3, 28);
-	header.writeUInt16LE(2, 32);
-	header.writeUInt16LE(16, 34);
-	header.write("data", 36);
-	header.writeUInt32LE(totalBuffer.length, 40);
-	const wavBuffer = Buffer.concat([header, totalBuffer]);
-	fs.writeFileSync(wavPath, wavBuffer);
-	return wavPath;
+function C(e, t) {
+	if (e.length === 0) return null;
+	let n = Buffer.concat(e), r = o(t, `vocalfix_${Date.now()}.wav`), i = Buffer.alloc(44);
+	i.write("RIFF", 0), i.writeUInt32LE(36 + n.length, 4), i.write("WAVE", 8), i.write("fmt ", 12), i.writeUInt32LE(16, 16), i.writeUInt16LE(1, 20), i.writeUInt16LE(1, 22), i.writeUInt32LE(16e3, 24), i.writeUInt32LE(32e3, 28), i.writeUInt16LE(2, 32), i.writeUInt16LE(16, 34), i.write("data", 36), i.writeUInt32LE(n.length, 40);
+	let a = Buffer.concat([i, n]);
+	return u.writeFileSync(r, a), r;
 }
 //#endregion
 //#region electron/ipcHandlers.ts
-function registerIpcHandlers(preload, settingsHtml) {
-	ipcMain.on("open-settings", () => {
-		createSettingsWindow(preload, settingsHtml);
-	});
-	ipcMain.on("close-window", (event) => {
-		const window = BrowserWindow.fromWebContents(event.sender);
-		if (window) window.close();
-	});
-	ipcMain.on("minimize-window", (event) => {
-		const window = BrowserWindow.fromWebContents(event.sender);
-		if (window) window.minimize();
-	});
-	ipcMain.on("maximize-window", (event) => {
-		const window = BrowserWindow.fromWebContents(event.sender);
-		if (window) {
-			if (window.isMaximized()) window.unmaximize();
-			else window.maximize();
-		}
-	});
-	let audioChunks = [];
-	ipcMain.on("audio-chunk", (event, pcmData) => {
-		const buf = Buffer.from(new Int16Array(pcmData).buffer);
-		audioChunks.push(buf);
-	});
-	ipcMain.on("audio-stop", async (event) => {
-		if (audioChunks.length === 0) return;
-		console.log("Processing audio chunks...");
-		const chunksToProcess = [...audioChunks];
-		audioChunks = [];
-		let wavPath = null;
+function w(e, i) {
+	r.on("open-settings", () => {
+		S(e, i);
+	}), r.handle("get-models", async () => {
 		try {
-			wavPath = saveWavFile(chunksToProcess, app.getPath("temp"));
-			if (!wavPath) return;
-			console.log("Transcribing...");
-			const transcription = await transcribeAudio(wavPath);
-			event.sender.send("transcription-result", transcription);
-			if (transcription) {
-				console.log("Fixing grammar...");
-				const corrected = await fixGrammar(transcription);
-				event.sender.send("correction-result", corrected);
-			}
+			let e = d("path").join(__dirname, "../../models");
+			if (!u.existsSync(e)) return {
+				whisper: [],
+				llama: []
+			};
+			let t = u.readdirSync(e);
+			return {
+				whisper: t.filter((e) => e.includes("ggml") || e.includes("whisper")),
+				llama: t.filter((e) => e.endsWith(".gguf") && !e.includes("whisper"))
+			};
 		} catch (e) {
-			console.error("AI Processing error:", e);
-			event.sender.send("ai-error", e instanceof Error ? e.message : String(e));
+			return console.error("Failed to read models dir", e), {
+				whisper: [],
+				llama: []
+			};
+		}
+	}), r.on("close-window", (e) => {
+		let n = t.fromWebContents(e.sender);
+		n && n.close();
+	}), r.on("minimize-window", (e) => {
+		let n = t.fromWebContents(e.sender);
+		n && n.minimize();
+	}), r.on("maximize-window", (e) => {
+		let n = t.fromWebContents(e.sender);
+		n && (n.isMaximized() ? n.unmaximize() : n.maximize());
+	});
+	let a = [];
+	r.on("audio-chunk", (e, t) => {
+		let n = Buffer.from(new Int16Array(t).buffer);
+		a.push(n);
+	}), r.on("audio-stop", async (e) => {
+		if (a.length === 0) return;
+		console.log("Processing audio chunks...");
+		let t = [...a];
+		a = [];
+		let r = null;
+		try {
+			if (r = C(t, n.getPath("temp")), !r) return;
+			console.log("Transcribing...");
+			let i = await _(r);
+			if (e.sender.send("transcription-result", i), i) {
+				console.log("Fixing grammar...");
+				let t = await v(i);
+				e.sender.send("correction-result", t);
+			}
+		} catch (t) {
+			console.error("AI Processing error:", t), e.sender.send("ai-error", t instanceof Error ? t.message : String(t));
 		} finally {
-			if (wavPath && fs.existsSync(wavPath)) try {
-				fs.unlinkSync(wavPath);
-			} catch (unlinkErr) {
-				console.error("Failed to delete temp wav file:", unlinkErr);
+			if (r && u.existsSync(r)) try {
+				u.unlinkSync(r);
+			} catch (e) {
+				console.error("Failed to delete temp wav file:", e);
 			}
 		}
 	});
 }
 //#endregion
 //#region electron/main.ts
-var __filename = fileURLToPath(import.meta.url);
-var __dirname = dirname(__filename);
-process.env.DIST = join(__dirname, "../dist");
-process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST, "../public");
-var preload = join(__dirname, "./preload.js");
-var indexHtml = join(process.env.DIST, "index.html");
-var settingsHtml = join(process.env.DIST, "settings.html");
-app.whenReady().then(async () => {
-	await initAI();
-	const mainWindow = createWindow(preload, indexHtml);
-	registerIpcHandlers(preload, settingsHtml);
-	setInterval(async () => {
-		if (mainWindow && !mainWindow.isDestroyed()) {
-			const memoryGB = ((await process.getProcessMemoryInfo()).residentSet / 1024).toFixed(1) + " GB";
-			mainWindow.webContents.send("memory-stats", memoryGB);
+var T = s(import.meta.url), E = a(T);
+process.env.DIST = o(E, "../dist"), process.env.PUBLIC = n.isPackaged ? process.env.DIST : o(process.env.DIST, "../public");
+var D = o(E, "./preload.js"), O = o(process.env.DIST, "index.html"), k = o(process.env.DIST, "settings.html");
+n.whenReady().then(async () => {
+	await g();
+	let e = x(D, O);
+	w(D, k), setInterval(async () => {
+		if (e && !e.isDestroyed()) {
+			let t = ((await process.getProcessMemoryInfo()).residentSet / 1024).toFixed(1) + " GB";
+			e.webContents.send("memory-stats", t);
 		}
-	}, 2e3);
-	app.on("activate", () => {
-		if (BrowserWindow.getAllWindows().length === 0) createWindow(preload, indexHtml);
+	}, 2e3), n.on("activate", () => {
+		t.getAllWindows().length === 0 && x(D, O);
 	});
-});
-app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") app.quit();
+}), n.on("window-all-closed", () => {
+	process.platform !== "darwin" && n.quit();
 });
 //#endregion
 export {};

@@ -9,6 +9,22 @@ export function registerIpcHandlers(preload: string, settingsHtml: string) {
     createSettingsWindow(preload, settingsHtml)
   })
 
+  ipcMain.handle('get-models', async () => {
+    try {
+      const modelsDir = require('path').join(__dirname, '../../models');
+      if (!fs.existsSync(modelsDir)) return { whisper: [], llama: [] };
+      
+      const files = fs.readdirSync(modelsDir);
+      const whisper = files.filter((f: string) => f.includes('ggml') || f.includes('whisper'));
+      const llama = files.filter((f: string) => f.endsWith('.gguf') && !f.includes('whisper'));
+      
+      return { whisper, llama };
+    } catch (e) {
+      console.error('Failed to read models dir', e);
+      return { whisper: [], llama: [] };
+    }
+  });
+
   ipcMain.on('close-window', (event) => {
     const window = BrowserWindow.fromWebContents(event.sender)
     if (window) window.close()
