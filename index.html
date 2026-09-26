@@ -80,10 +80,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="mic" aria-hidden="true" class="lucide lucide-mic w-3.5 h-3.5 mr-1.5 text-zinc-400"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg>
 <span class="text-zinc-500 mr-1 font-normal">STT:</span>
 <select id="stt-model-select" class="bg-transparent text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
-<option class="bg-studio-surface text-studio-heading" value="small">Whisper Small.en (466 MB)</option>
-<option class="bg-studio-surface text-studio-heading" value="base">Whisper Base (142 MB)</option>
-<option class="bg-studio-surface text-studio-heading" value="medium">Whisper Medium (1.5 GB)</option>
-<option class="bg-studio-surface text-studio-heading" value="large">Whisper Large v3</option>
+<option class="bg-studio-surface text-studio-heading" value="">Cargando...</option>
 </select>
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-zinc-500 ml-1 pointer-events-none"><path d="m6 9 6 6 6-6"></path></svg>
 </div>
@@ -92,10 +89,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="cpu" aria-hidden="true" class="lucide lucide-cpu w-3.5 h-3.5 mr-1.5 text-zinc-400"><path d="M12 20v2"></path><path d="M12 2v2"></path><path d="M17 20v2"></path><path d="M17 2v2"></path><path d="M2 12h2"></path><path d="M2 17h2"></path><path d="M2 7h2"></path><path d="M20 12h2"></path><path d="M20 17h2"></path><path d="M20 7h2"></path><path d="M7 20v2"></path><path d="M7 2v2"></path><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>
 <span class="text-zinc-500 mr-1 font-normal">Modelo:</span>
 <select id="llm-model-select" class="bg-transparent text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
-<option class="bg-studio-surface text-studio-heading" value="phi3">Phi-3 Mini 4K (Q4)</option>
-<option class="bg-studio-surface text-studio-heading" value="tinyllama">TinyLlama 1.1B</option>
-<option class="bg-studio-surface text-studio-heading" value="llama3">Llama 3 8B Instruct</option>
-<option class="bg-studio-surface text-studio-heading" value="gemma2">Gemma 2 2B</option>
+<option class="bg-studio-surface text-studio-heading" value="">Cargando...</option>
 </select>
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-zinc-500 ml-1 pointer-events-none"><path d="m6 9 6 6 6-6"></path></svg>
 </div>
@@ -106,13 +100,11 @@
 <span class="">GPU acelerada</span>
 <span class="text-zinc-600">·</span>
 <span class="" id="gpu-memory">2.1 GB</span>
-<span class="text-zinc-600">·</span>
-<span class="text-zinc-300 font-mono" id="gpu-latency">38 ms</span>
 </div>
 <div class="h-3.5 w-px bg-studio-border hidden md:block"></div>
 
 <div style="-webkit-app-region: no-drag;" class="flex items-center justify-center">
-<button id="btn-settings" class="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition cursor-pointer relative z-50" title="Preferencias">
+<button id="btn-settings" style="-webkit-app-region: no-drag;" class="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition cursor-pointer relative z-50" title="Preferencias">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" aria-hidden="true" class="lucide lucide-settings w-4 h-4"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
@@ -127,7 +119,6 @@
 <!-- Section Header -->
 <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-studio-borderSubtle">
 <div class="flex items-center gap-2">
-<span class="w-2 h-2 rounded-full bg-zinc-400" id="status-dot"></span>
 <h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Transcripción en directo</h2>
 </div>
 
@@ -144,7 +135,6 @@
 </div>
 <!-- Document Metadata Footer -->
 <div class="pt-4 mt-6 border-t border-studio-borderSubtle flex items-center justify-between text-xs text-zinc-400">
-<span class="text-[11px] text-zinc-400" id="metrics">Cadencia: -- ppm · Precisión: --%</span>
 <button class="px-2.5 py-1 text-xs rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition border border-studio-border flex items-center gap-1.5">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rotate-ccw" aria-hidden="true" class="lucide lucide-rotate-ccw w-3.5 h-3.5 text-zinc-400"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
 <span class="">Volver a escuchar</span>

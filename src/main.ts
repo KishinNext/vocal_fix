@@ -14,12 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnMaximize) btnMaximize.addEventListener('click', () => window.electronAPI?.maximizeWindow())
   if (btnSettings) {
     btnSettings.addEventListener('click', () => {
-      console.log('Settings button clicked! Calling window.electronAPI.openSettings()', window.electronAPI);
-      if (window.electronAPI?.openSettings) {
-        window.electronAPI.openSettings();
-      } else {
-        console.error('window.electronAPI.openSettings is undefined!');
-      }
+      window.location.href = '/pages/settings.html';
     });
   }
 
