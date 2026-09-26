@@ -1,0 +1,24 @@
+{
+  "name": "local_traductor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vite-plugin-electron": "^1.1.2",
+    "vite-plugin-electron-renderer": "^1.0.0"
+  },
+  "main": "dist-electron/main.js",
+  "dependencies": {
+    "node-llama-cpp": "^3.21.1",
+    "whisper-node": "^1.1.1"
+  }
+}

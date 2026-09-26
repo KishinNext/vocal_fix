@@ -1,0 +1,298 @@
+<!DOCTYPE html><html class="dark h-full" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VocalFix — Asistente de Voz y Expresión Natural</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            studio: {
+              bg: '#141416',
+              surface: '#1b1b1e',
+              card: '#222226',
+              elevated: '#28282d',
+              border: 'rgba(255, 255, 255, 0.08)',
+              borderSubtle: 'rgba(255, 255, 255, 0.04)',
+              muted: '#71717a',
+              subtle: '#a1a1aa',
+              body: '#d4d4d8',
+              heading: '#fafafa',
+              accent: '#e4e4e7',
+              terracotta: '#d97706',
+              sage: '#10b981'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter', 'Segoe UI', 'sans-serif'],
+            display: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Inter', 'sans-serif'],
+            mono: ['SF Mono', 'ui-monospace', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<style data-purpose="editorial-refinements">
+    /* Subtle editorial scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+    /* Calm text caret */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .editorial-caret {
+      animation: blink 1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+  </style>
+</head>
+<body class="h-full bg-studio-bg text-studio-body font-sans select-none flex flex-col overflow-hidden antialiased">
+<!-- BEGIN: Editorial Window Header -->
+<header class="h-12 bg-studio-bg border-b border-studio-border flex items-center justify-between px-4 select-none shrink-0 z-20" style="-webkit-app-region: drag;">
+<!-- Left: Native macOS Window Controls & Title -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 pr-2" style="-webkit-app-region: no-drag;">
+<button class="w-3 h-3 rounded-full bg-[#ff5f56] opacity-80 hover:opacity-100 transition" title="Cerrar" id="btn-close"></button>
+<button class="w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80 hover:opacity-100 transition" title="Minimizar" id="btn-minimize"></button>
+<button class="w-3 h-3 rounded-full bg-[#27c93f] opacity-80 hover:opacity-100 transition" title="Maximizar" id="btn-maximize"></button>
+</div>
+<div class="flex items-center gap-2.5">
+<span class="font-display font-medium text-sm tracking-tight text-studio-heading">VocalFix</span>
+<span class="text-[11px] font-mono text-studio-muted bg-white/[0.04] border border-studio-border px-1.5 py-0.5 rounded text-xs">v1.4</span>
+<span class="text-[11px] text-zinc-400 flex items-center gap-1.5 pl-1">
+<span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+          Motor local
+        </span>
+</div>
+</div>
+<!-- Center: Quiet Native Selectors -->
+<div class="flex items-center gap-2" style="-webkit-app-region: no-drag;">
+<!-- Speech Model Select -->
+<div class="relative flex items-center bg-studio-surface border border-studio-border rounded-md px-2.5 py-1 text-xs text-studio-subtle hover:border-white/20 transition group">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="mic" aria-hidden="true" class="lucide lucide-mic w-3.5 h-3.5 mr-1.5 text-zinc-400"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg>
+<span class="text-zinc-500 mr-1 font-normal">STT:</span>
+<select class="bg-transparent text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
+<option class="bg-studio-surface text-studio-heading" value="small">Whisper Small.en (466 MB)</option>
+<option class="bg-studio-surface text-studio-heading" value="base">Whisper Base (142 MB)</option>
+<option class="bg-studio-surface text-studio-heading" value="medium">Whisper Medium (1.5 GB)</option>
+<option class="bg-studio-surface text-studio-heading" value="large">Whisper Large v3</option>
+</select>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-zinc-500 ml-1 pointer-events-none"><path d="m6 9 6 6 6-6"></path></svg>
+</div>
+<!-- LLM Select -->
+<div class="relative flex items-center bg-studio-surface border border-studio-border rounded-md px-2.5 py-1 text-xs text-studio-subtle hover:border-white/20 transition group">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="cpu" aria-hidden="true" class="lucide lucide-cpu w-3.5 h-3.5 mr-1.5 text-zinc-400"><path d="M12 20v2"></path><path d="M12 2v2"></path><path d="M17 20v2"></path><path d="M17 2v2"></path><path d="M2 12h2"></path><path d="M2 17h2"></path><path d="M2 7h2"></path><path d="M20 12h2"></path><path d="M20 17h2"></path><path d="M20 7h2"></path><path d="M7 20v2"></path><path d="M7 2v2"></path><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>
+<span class="text-zinc-500 mr-1 font-normal">Modelo:</span>
+<select class="bg-transparent text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
+<option class="bg-studio-surface text-studio-heading" value="phi3">Phi-3 Mini 4K (Q4)</option>
+<option class="bg-studio-surface text-studio-heading" value="tinyllama">TinyLlama 1.1B</option>
+<option class="bg-studio-surface text-studio-heading" value="llama3">Llama 3 8B Instruct</option>
+<option class="bg-studio-surface text-studio-heading" value="gemma2">Gemma 2 2B</option>
+</select>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-zinc-500 ml-1 pointer-events-none"><path d="m6 9 6 6 6-6"></path></svg>
+</div>
+</div>
+<!-- Right: Telemetry & Studio Preferences -->
+<div class="flex items-center gap-3" style="-webkit-app-region: no-drag;">
+<div class="hidden md:flex items-center gap-2 text-[11px] text-zinc-400 font-normal">
+<span class="">GPU acelerada</span>
+<span class="text-zinc-600">·</span>
+<span class="">2.1 GB</span>
+<span class="text-zinc-600">·</span>
+<span class="text-zinc-300 font-mono">38 ms</span>
+</div>
+<div class="h-3.5 w-px bg-studio-border hidden md:block"></div>
+
+<button id="btn-settings" class="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition" title="Preferencias">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" aria-hidden="true" class="lucide lucide-settings w-4 h-4"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</header>
+<!-- END: Editorial Window Header -->
+<!-- BEGIN: Three-Panel Writing Studio Grid -->
+<main class="flex-1 p-5 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 overflow-hidden">
+<!-- COLUMNA 1: Transcripción en directo -->
+<section class="flex flex-col bg-studio-surface border border-studio-border rounded-xl p-5 shadow-sm relative overflow-hidden transition-colors">
+<!-- Section Header -->
+<div class="flex items-center justify-between pb-3.5 mb-4 border-b border-studio-borderSubtle">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-zinc-400" id="status-dot"></span>
+<h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Transcripción en directo</h2>
+</div>
+<span class="text-[11px] text-zinc-400 font-mono" id="status-text">En tiempo real</span>
+</div>
+<!-- Editor Document Viewport -->
+<div class="flex-1 flex flex-col justify-between overflow-y-auto pr-1">
+<div class="space-y-4">
+<div class="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Entrada de voz detectada</div>
+<!-- Live Spoken Sentence -->
+<div class="text-xl md:text-2xl font-light text-studio-heading leading-relaxed font-sans" id="live-transcription">
+            Esperando entrada de voz...<span class="inline-block w-[2px] h-5 bg-zinc-400 ml-1.5 align-middle editorial-caret"></span>
+</div>
+<p class="text-xs text-zinc-400 leading-normal pt-1" id="metrics">
+            Cadencia: -- palabras por minuto · Precisión estimada: --%
+          </p>
+</div>
+<!-- Document Metadata Footer -->
+<div class="pt-4 mt-6 border-t border-studio-borderSubtle flex items-center justify-between text-xs text-zinc-400">
+<span class="text-[11px] text-zinc-400">Capturando...</span>
+<button class="px-2.5 py-1 text-xs rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition border border-studio-border flex items-center gap-1.5">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rotate-ccw" aria-hidden="true" class="lucide lucide-rotate-ccw w-3.5 h-3.5 text-zinc-400"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+<span class="">Volver a escuchar</span>
+</button>
+</div>
+</div>
+<!-- Column Micro Info -->
+<div class="mt-3 pt-2 text-[11px] text-zinc-400 flex items-center justify-between">
+<span class="">Idioma: <strong class="font-medium text-zinc-300">Inglés (EE. UU.)</strong></span>
+<span class="">Temp: 0.0</span>
+</div>
+</section>
+<!-- COLUMNA 2: Revisión y puntos a mejorar -->
+<section class="flex flex-col bg-studio-surface border border-studio-border rounded-xl p-5 shadow-sm relative overflow-hidden transition-colors">
+<!-- Section Header -->
+<div class="flex items-center justify-between pb-3.5 mb-4 border-b border-studio-borderSubtle">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500/80"></span>
+<h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Revisión gramatical</h2>
+</div>
+<span class="text-[11px] text-amber-400/90 font-mono bg-amber-400/10 px-2 py-0.5 rounded">Observaciones</span>
+</div>
+<!-- Review Content Viewport -->
+<div class="flex-1 flex flex-col justify-between overflow-y-auto pr-1 space-y-4" id="grammar-review-container">
+    <div class="text-sm text-zinc-500 mt-4 text-center">Esperando análisis gramatical...</div>
+</div>
+<!-- Column Micro Info -->
+<div class="mt-3 pt-2 text-[11px] text-zinc-400 flex items-center justify-between">
+<span class="">Regla sintáctica: <strong class="font-mono text-zinc-300">Auto</strong></span>
+<span class="">Revisión local asistida</span>
+</div>
+</section>
+<!-- COLUMNA 3: Expresión natural sugerida -->
+<section class="flex flex-col bg-studio-surface border border-studio-border rounded-xl p-5 shadow-sm relative overflow-hidden transition-colors">
+<!-- Section Header -->
+<div class="flex items-center justify-between pb-3.5 mb-4 border-b border-studio-borderSubtle">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500/80"></span>
+<h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Expresión natural sugerida</h2>
+</div>
+<span class="text-[11px] text-emerald-400/90 font-mono bg-emerald-400/10 px-2 py-0.5 rounded">Sugerencias</span>
+</div>
+<!-- Tone Switcher Tabs (Editorial Style) -->
+<div class="flex items-center p-0.5 bg-studio-card rounded-lg border border-studio-border mb-4">
+<button class="flex-1 py-1 text-xs text-studio-heading font-medium bg-studio-elevated rounded shadow-xs border border-white/[0.06] transition text-center">
+          Natural
+        </button>
+<button class="flex-1 py-1 text-xs text-zinc-400 hover:text-zinc-200 transition text-center">
+          Profesional
+        </button>
+<button class="flex-1 py-1 text-xs text-zinc-400 hover:text-zinc-200 transition text-center">
+          Conciso
+        </button>
+</div>
+<!-- Suggestion Viewport -->
+<div class="flex-1 flex flex-col justify-between overflow-y-auto pr-1 space-y-4">
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Recomendación principal</span>
+<span class="text-[11px] text-emerald-400 font-medium">Fluida</span>
+</div>
+<!-- Primary Recommendation Card -->
+<div id="primary-recommendation" class="p-4 rounded-lg bg-studio-card border border-emerald-500/20 text-studio-heading text-lg md:text-xl font-normal leading-relaxed tracking-tight text-zinc-500">
+            A la espera de voz...
+          </div>
+</div>
+<!-- Studio Action Bar: Listen & Copy -->
+<div class="pt-4 border-t border-studio-borderSubtle flex items-center justify-between mt-auto">
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 border border-studio-border text-xs flex items-center gap-1.5 transition" title="Escuchar síntesis de voz natural">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="volume-2" aria-hidden="true" class="lucide lucide-volume-2 w-3.5 h-3.5 text-zinc-400"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"></path><path d="M16 9a5 5 0 0 1 0 6"></path><path d="M19.364 18.364a9 9 0 0 0 0-12.728"></path></svg>
+<span class="">Escuchar</span>
+</button>
+<button class="p-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-studio-border text-xs transition" title="Insertar en la app activa">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="corner-down-left" aria-hidden="true" class="lucide lucide-corner-down-left w-3.5 h-3.5 text-zinc-400"><path d="M20 4v7a4 4 0 0 1-4 4H4"></path><path d="m9 10-5 5 5 5"></path></svg>
+</button>
+</div>
+<button class="px-3.5 py-1.5 rounded-md bg-zinc-200 hover:bg-white text-zinc-900 font-medium text-xs flex items-center gap-1.5 transition active:scale-95" id="copyBtn" onclick="copyCurrentSuggestion()">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" aria-hidden="true" class="lucide lucide-copy w-3.5 h-3.5 text-zinc-800"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+<span id="copyBtnText" class="">Copiar</span>
+</button>
+</div>
+</div>
+<!-- Column Micro Info -->
+<div class="mt-3 pt-2 text-[11px] text-zinc-400 flex items-center justify-between">
+<span class="">Estilo: <strong class="text-zinc-300 font-normal">Hablante nativo habitual</strong></span>
+<span class="">Sin jerga artificial</span>
+</div>
+</section>
+</main>
+<!-- END: Three-Panel Writing Studio Grid -->
+<!-- BEGIN: Editorial Control Dock -->
+<footer class="bg-studio-bg border-t border-studio-border px-5 py-3 flex flex-wrap items-center justify-between gap-4 select-none z-20 shrink-0">
+<!-- Left: Audio Source Selection -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 bg-studio-surface px-2.5 py-1.5 rounded-lg border border-studio-border text-xs text-zinc-300">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="mic" aria-hidden="true" class="lucide lucide-mic w-3.5 h-3.5 text-zinc-400"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg>
+<select id="mic-select" class="bg-transparent text-xs text-zinc-200 border-none p-0 pr-6 focus:ring-0 cursor-pointer font-normal">
+<option value="" class="bg-studio-surface">Micrófono predeterminado</option>
+</select>
+</div>
+<!-- Subtle Level Indicator -->
+<div class="hidden sm:flex items-center gap-1 px-2 py-1.5 rounded border border-studio-border bg-studio-surface text-[11px] text-zinc-400">
+<span class="w-1 h-2 rounded-full bg-zinc-400"></span>
+<span class="w-1 h-2.5 rounded-full bg-zinc-400"></span>
+<span class="w-1 h-3 rounded-full bg-zinc-400"></span>
+<span class="w-1 h-1.5 rounded-full bg-zinc-600"></span>
+</div>
+</div>
+<!-- Center: Main Recording Studio Button -->
+<div class="flex items-center gap-2.5">
+<button class="px-5 py-2 rounded-full bg-studio-card hover:bg-studio-elevated border border-studio-border text-zinc-200 text-xs font-medium flex items-center gap-2.5 transition active:scale-95 shadow-sm" id="recordToggleBtn">
+          <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
+          <span class="text-xs text-zinc-400 font-medium tracking-wide">En pausa</span>
+          <span class="text-[10px] font-mono text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-studio-border">Espacio</span>
+</button>
+<button class="p-2 rounded-full bg-studio-surface hover:bg-studio-card text-zinc-400 hover:text-zinc-200 border border-studio-border transition" title="Pausar transcripción">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="pause" aria-hidden="true" class="lucide lucide-pause w-3.5 h-3.5"><rect x="14" y="3" width="5" height="18" rx="1"></rect><rect x="5" y="3" width="5" height="18" rx="1"></rect></svg>
+</button>
+</div>
+<!-- Right: Options & Subtle Shortcuts -->
+<div class="flex items-center gap-4 text-xs text-zinc-400">
+<label class="flex items-center gap-2 cursor-pointer">
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox">
+<div class="w-8 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-zinc-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-zinc-400"></div>
+</div>
+<span class="text-xs text-zinc-300 select-none">Auto-revisión</span>
+</label>
+<div class="h-3.5 w-px bg-studio-border"></div>
+<div class="hidden xl:flex items-center gap-1.5 text-zinc-400">
+<kbd class="px-1.5 py-0.5 rounded bg-studio-surface border border-studio-border text-[10px] font-mono text-zinc-300">⌥ Espacio</kbd>
+<span class="">Superposición rápida</span>
+</div>
+</div>
+</footer>
+<!-- END: Editorial Control Dock -->
+<!-- BEGIN: Studio Scripts -->
+<script data-purpose="lucide-initialization">
+    lucide.createIcons();
+  </script>
+<script type="module" src="/src/main.ts"></script>
+</body></html>
