@@ -21,5 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_event: any, value: string) => callback(value);
     ipcRenderer.on('ai-error', listener);
     return () => ipcRenderer.removeListener('ai-error', listener);
+  },
+  onMemoryStats: (callback: (memoryGB: string) => void) => {
+    const listener = (_event: any, value: string) => callback(value);
+    ipcRenderer.on('memory-stats', listener);
+    return () => ipcRenderer.removeListener('memory-stats', listener);
   }
 })

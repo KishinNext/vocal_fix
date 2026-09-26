@@ -12,7 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnClose) btnClose.addEventListener('click', () => window.electronAPI?.closeWindow())
   if (btnMinimize) btnMinimize.addEventListener('click', () => window.electronAPI?.minimizeWindow())
   if (btnMaximize) btnMaximize.addEventListener('click', () => window.electronAPI?.maximizeWindow())
-  if (btnSettings) btnSettings.addEventListener('click', () => window.electronAPI?.openSettings())
+  if (btnSettings) {
+    btnSettings.addEventListener('click', () => {
+      console.log('Settings button clicked! Calling window.electronAPI.openSettings()', window.electronAPI);
+      if (window.electronAPI?.openSettings) {
+        window.electronAPI.openSettings();
+      } else {
+        console.error('window.electronAPI.openSettings is undefined!');
+      }
+    });
+  }
 
   // Stub recording functionality for now
   const recordBtn = document.getElementById('recordToggleBtn');
@@ -44,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show original transcribed text
     const editorEl = document.getElementById('live-transcription')
     if (editorEl) {
-      if (editorEl.innerText.includes('Esperando entrada de voz...')) {
+      if (editorEl.innerText.includes('Esperando voz...')) {
         editorEl.innerHTML = '';
       }
       editorEl.innerHTML += `<p class="text-on-surface/50 italic mb-2">🎤 ${text}</p>`
@@ -55,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show corrected text
     const editorEl = document.getElementById('grammar-review-container')
     if (editorEl) {
-      if (editorEl.innerText.includes('Esperando análisis gramatical...')) {
+      if (editorEl.innerText.includes('Esperando voz...')) {
         editorEl.innerHTML = '';
       }
       editorEl.innerHTML += `<p class="mb-4 text-zinc-300">✨ ${text}</p>`
@@ -66,6 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
       primaryRecEl.innerText = text;
     }
   })
+
+  window.electronAPI?.onMemoryStats?.((memoryGB: string) => {
+    const memEl = document.getElementById('gpu-memory');
+    if (memEl) {
+      memEl.innerText = memoryGB;
+    }
+  });
 
   if (recordBtn) {
     recordBtn.addEventListener('click', async () => {
@@ -115,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.copyCurrentSuggestion = () => {
     const primaryRecEl = document.getElementById('primary-recommendation');
     const textToCopy = primaryRecEl ? primaryRecEl.innerText : "";
-    if (!textToCopy || textToCopy.includes('A la espera de voz...')) return;
+    if (!textToCopy || textToCopy.includes('Esperando voz...')) return;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       const copyText = document.getElementById('copyBtnText');

@@ -17,8 +17,17 @@ const settingsHtml = join(process.env.DIST, 'settings.html')
 
 app.whenReady().then(async () => {
   await initAI()
-  createWindow(preload, indexHtml)
+  const mainWindow = createWindow(preload, indexHtml)
   registerIpcHandlers(preload, settingsHtml)
+
+  // Send memory stats continuously
+  setInterval(async () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const memInfo = await process.getProcessMemoryInfo();
+      const memoryGB = (memInfo.residentSet / 1024).toFixed(1) + ' GB';
+      mainWindow.webContents.send('memory-stats', memoryGB);
+    }
+  }, 2000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

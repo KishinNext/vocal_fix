@@ -11,6 +11,7 @@ export function createWindow(preload: string, indexHtml: string) {
     minWidth: 1024,
     minHeight: 600,
     titleBarStyle: 'hiddenInset',
+    icon: join(process.env.PUBLIC || '', 'logo.png'),
     webPreferences: {
       preload,
       nodeIntegration: false,
@@ -32,6 +33,7 @@ export function createWindow(preload: string, indexHtml: string) {
   } else {
     win.loadFile(indexHtml)
   }
+  return win;
 }
 
 export function createSettingsWindow(preload: string, settingsHtml: string) {
@@ -46,6 +48,7 @@ export function createSettingsWindow(preload: string, settingsHtml: string) {
     minWidth: 800,
     minHeight: 600,
     titleBarStyle: 'hiddenInset',
+    icon: join(process.env.PUBLIC || '', 'logo.png'),
     webPreferences: {
       preload,
       nodeIntegration: false,

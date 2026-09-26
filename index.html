@@ -65,21 +65,12 @@
 </head>
 <body class="h-full bg-studio-bg text-studio-body font-sans select-none flex flex-col overflow-hidden antialiased">
 <!-- BEGIN: Editorial Window Header -->
-<header class="h-12 bg-studio-bg border-b border-studio-border flex items-center justify-between px-4 select-none shrink-0 z-20" style="-webkit-app-region: drag;">
+<header class="h-12 bg-studio-bg border-b border-studio-border flex items-center justify-between pl-20 pr-4 select-none shrink-0 z-20" style="-webkit-app-region: drag;">
 <!-- Left: Native macOS Window Controls & Title -->
 <div class="flex items-center gap-4">
-<div class="flex items-center gap-1.5 pr-2" style="-webkit-app-region: no-drag;">
-<button class="w-3 h-3 rounded-full bg-[#ff5f56] opacity-80 hover:opacity-100 transition" title="Cerrar" id="btn-close"></button>
-<button class="w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80 hover:opacity-100 transition" title="Minimizar" id="btn-minimize"></button>
-<button class="w-3 h-3 rounded-full bg-[#27c93f] opacity-80 hover:opacity-100 transition" title="Maximizar" id="btn-maximize"></button>
-</div>
 <div class="flex items-center gap-2.5">
 <span class="font-display font-medium text-sm tracking-tight text-studio-heading">VocalFix</span>
-<span class="text-[11px] font-mono text-studio-muted bg-white/[0.04] border border-studio-border px-1.5 py-0.5 rounded text-xs">v1.4</span>
-<span class="text-[11px] text-zinc-400 flex items-center gap-1.5 pl-1">
-<span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
-          Motor local
-        </span>
+
 </div>
 </div>
 <!-- Center: Quiet Native Selectors -->
@@ -114,13 +105,13 @@
 <div class="hidden md:flex items-center gap-2 text-[11px] text-zinc-400 font-normal">
 <span class="">GPU acelerada</span>
 <span class="text-zinc-600">·</span>
-<span class="">2.1 GB</span>
+<span class="" id="gpu-memory">2.1 GB</span>
 <span class="text-zinc-600">·</span>
-<span class="text-zinc-300 font-mono">38 ms</span>
+<span class="text-zinc-300 font-mono" id="gpu-latency">38 ms</span>
 </div>
 <div class="h-3.5 w-px bg-studio-border hidden md:block"></div>
 
-<button id="btn-settings" class="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition" title="Preferencias">
+<button id="btn-settings" class="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition cursor-pointer" title="Preferencias" style="-webkit-app-region: no-drag;">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" aria-hidden="true" class="lucide lucide-settings w-4 h-4"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
@@ -136,23 +127,21 @@
 <span class="w-2 h-2 rounded-full bg-zinc-400" id="status-dot"></span>
 <h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Transcripción en directo</h2>
 </div>
-<span class="text-[11px] text-zinc-400 font-mono" id="status-text">En tiempo real</span>
+
 </div>
 <!-- Editor Document Viewport -->
 <div class="flex-1 flex flex-col justify-between overflow-y-auto pr-1">
 <div class="space-y-4">
-<div class="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Entrada de voz detectada</div>
+
 <!-- Live Spoken Sentence -->
 <div class="text-xl md:text-2xl font-light text-studio-heading leading-relaxed font-sans" id="live-transcription">
-            Esperando entrada de voz...<span class="inline-block w-[2px] h-5 bg-zinc-400 ml-1.5 align-middle editorial-caret"></span>
+            <span class="text-zinc-500/40 text-sm font-normal italic tracking-wide">Esperando voz...</span>
 </div>
-<p class="text-xs text-zinc-400 leading-normal pt-1" id="metrics">
-            Cadencia: -- palabras por minuto · Precisión estimada: --%
-          </p>
+
 </div>
 <!-- Document Metadata Footer -->
 <div class="pt-4 mt-6 border-t border-studio-borderSubtle flex items-center justify-between text-xs text-zinc-400">
-<span class="text-[11px] text-zinc-400">Capturando...</span>
+<span class="text-[11px] text-zinc-400" id="metrics">Cadencia: -- ppm · Precisión: --%</span>
 <button class="px-2.5 py-1 text-xs rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition border border-studio-border flex items-center gap-1.5">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rotate-ccw" aria-hidden="true" class="lucide lucide-rotate-ccw w-3.5 h-3.5 text-zinc-400"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
 <span class="">Volver a escuchar</span>
@@ -173,11 +162,11 @@
 <span class="w-2 h-2 rounded-full bg-amber-500/80"></span>
 <h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Revisión gramatical</h2>
 </div>
-<span class="text-[11px] text-amber-400/90 font-mono bg-amber-400/10 px-2 py-0.5 rounded">Observaciones</span>
+
 </div>
 <!-- Review Content Viewport -->
 <div class="flex-1 flex flex-col justify-between overflow-y-auto pr-1 space-y-4" id="grammar-review-container">
-    <div class="text-sm text-zinc-500 mt-4 text-center">Esperando análisis gramatical...</div>
+    <span class="text-zinc-500/40 text-sm font-normal italic tracking-wide text-center mt-4">Esperando voz...</span>
 </div>
 <!-- Column Micro Info -->
 <div class="mt-3 pt-2 text-[11px] text-zinc-400 flex items-center justify-between">
@@ -193,7 +182,7 @@
 <span class="w-2 h-2 rounded-full bg-emerald-500/80"></span>
 <h2 class="text-xs font-medium text-studio-heading tracking-wide uppercase">Expresión natural sugerida</h2>
 </div>
-<span class="text-[11px] text-emerald-400/90 font-mono bg-emerald-400/10 px-2 py-0.5 rounded">Sugerencias</span>
+
 </div>
 <!-- Tone Switcher Tabs (Editorial Style) -->
 <div class="flex items-center p-0.5 bg-studio-card rounded-lg border border-studio-border mb-4">
@@ -212,11 +201,11 @@
 <div class="space-y-4">
 <div class="flex items-center justify-between">
 <span class="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Recomendación principal</span>
-<span class="text-[11px] text-emerald-400 font-medium">Fluida</span>
+
 </div>
 <!-- Primary Recommendation Card -->
 <div id="primary-recommendation" class="p-4 rounded-lg bg-studio-card border border-emerald-500/20 text-studio-heading text-lg md:text-xl font-normal leading-relaxed tracking-tight text-zinc-500">
-            A la espera de voz...
+            <span class="text-zinc-500/40 text-sm font-normal italic tracking-wide block">Esperando voz...</span>
           </div>
 </div>
 <!-- Studio Action Bar: Listen & Copy -->
