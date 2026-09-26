@@ -33,8 +33,11 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        settings: resolve(__dirname, 'settings.html'),
-        shortcuts: resolve(__dirname, 'shortcuts.html')
+        settings: resolve(__dirname, 'pages/settings.html'),
+        'atajos-teclado-hotkeys': resolve(__dirname, 'pages/atajos-teclado-hotkeys.html'),
+        'reglas-gramaticales-estilo': resolve(__dirname, 'pages/reglas-gramaticales-estilo.html'),
+        'almacenamiento-privacidad': resolve(__dirname, 'pages/almacenamiento-privacidad.html'),
+        'rendimiento-hardware': resolve(__dirname, 'pages/rendimiento-hardware.html')
       }
     }
   }
