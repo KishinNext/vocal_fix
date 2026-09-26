@@ -96,6 +96,7 @@ function createWindow(preload, indexHtml) {
 		height: 800,
 		minWidth: 1024,
 		minHeight: 600,
+		show: true,
 		titleBarStyle: "hiddenInset",
 		icon: join(process.env.PUBLIC || "", "logo.png"),
 		webPreferences: {
@@ -108,6 +109,32 @@ function createWindow(preload, indexHtml) {
 		if (permission === "media") callback(true);
 		else callback(false);
 	});
+	win.webContents.setWindowOpenHandler(({ url }) => {
+		console.log(`[window.open] intercepted: ${url}`);
+		return {
+			action: "allow",
+			overrideBrowserWindowOptions: {
+				width: 1100,
+				height: 700,
+				minWidth: 800,
+				minHeight: 600,
+				titleBarStyle: "hiddenInset",
+				icon: join(process.env.PUBLIC || "", "logo.png"),
+				webPreferences: {
+					preload,
+					nodeIntegration: false,
+					contextIsolation: true
+				},
+				show: false
+			}
+		};
+	});
+	win.webContents.on("did-create-window", (childWin) => {
+		childWin.once("ready-to-show", () => {
+			childWin.show();
+			childWin.focus();
+		});
+	});
 	if (process.env.VITE_DEV_SERVER_URL) win.loadURL(process.env.VITE_DEV_SERVER_URL);
 	else win.loadFile(indexHtml);
 	return win;
@@ -118,10 +145,11 @@ function createSettingsWindow(preload, settingsHtml) {
 		return;
 	}
 	settingsWin = new BrowserWindow({
-		width: 800,
-		height: 600,
+		width: 1100,
+		height: 700,
 		minWidth: 800,
 		minHeight: 600,
+		show: false,
 		titleBarStyle: "hiddenInset",
 		icon: join(process.env.PUBLIC || "", "logo.png"),
 		webPreferences: {
@@ -130,11 +158,24 @@ function createSettingsWindow(preload, settingsHtml) {
 			contextIsolation: true
 		}
 	});
+	settingsWin.once("ready-to-show", () => {
+		settingsWin?.show();
+		settingsWin?.focus();
+	});
+	settingsWin.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+		console.error(`[settings window] Failed to load: ${validatedURL} — ${errorCode} ${errorDescription}`);
+	});
+	settingsWin.webContents.on("dom-ready", () => {
+		console.log("[settings window] DOM ready — window loaded OK");
+	});
 	if (process.env.VITE_DEV_SERVER_URL) {
-		const baseUrl = process.env.VITE_DEV_SERVER_URL;
-		const url = baseUrl.endsWith("/") ? `${baseUrl}settings.html` : `${baseUrl}/settings.html`;
+		const url = `${process.env.VITE_DEV_SERVER_URL.replace(/\/$/, "")}/pages/settings.html`;
+		console.log(`[settings window] Loading dev URL: ${url}`);
 		settingsWin.loadURL(url);
-	} else settingsWin.loadFile(settingsHtml);
+	} else {
+		console.log(`[settings window] Loading file: ${settingsHtml}`);
+		settingsWin.loadFile(settingsHtml);
+	}
 	settingsWin.on("closed", () => {
 		settingsWin = null;
 	});
@@ -167,6 +208,7 @@ function saveWavFile(audioChunks, tempDir) {
 //#region electron/ipcHandlers.ts
 function registerIpcHandlers(preload, settingsHtml) {
 	ipcMain.on("open-settings", () => {
+		console.log("[IPC] open-settings received — creating settings window");
 		createSettingsWindow(preload, settingsHtml);
 	});
 	ipcMain.handle("get-models", async () => {
@@ -246,7 +288,7 @@ process.env.DIST = join(__dirname$1, "../dist");
 process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST, "../public");
 var preload = join(__dirname$1, "./preload.js");
 var indexHtml = join(process.env.DIST, "index.html");
-var settingsHtml = join(process.env.DIST, "settings.html");
+var settingsHtml = join(process.env.DIST, "pages/settings.html");
 app.setName("VocalFix");
 if (process.platform === "darwin") app.dock.setIcon(join(process.env.PUBLIC || "", "logo.png"));
 app.whenReady().then(async () => {
