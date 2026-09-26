@@ -93,7 +93,7 @@ function S(e, n) {
 		b.focus();
 		return;
 	}
-	b = new t({
+	if (b = new t({
 		width: 800,
 		height: 600,
 		minWidth: 800,
@@ -105,7 +105,11 @@ function S(e, n) {
 			nodeIntegration: !1,
 			contextIsolation: !0
 		}
-	}), process.env.VITE_DEV_SERVER_URL ? b.loadURL(`${process.env.VITE_DEV_SERVER_URL}settings.html`) : b.loadFile(n), b.on("closed", () => {
+	}), process.env.VITE_DEV_SERVER_URL) {
+		let e = process.env.VITE_DEV_SERVER_URL, t = e.endsWith("/") ? `${e}settings.html` : `${e}/settings.html`;
+		b.loadURL(t);
+	} else b.loadFile(n);
+	b.on("closed", () => {
 		b = null;
 	});
 }

@@ -57,7 +57,9 @@ export function createSettingsWindow(preload: string, settingsHtml: string) {
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    settingsWin.loadURL(`${process.env.VITE_DEV_SERVER_URL}settings.html`)
+    const baseUrl = process.env.VITE_DEV_SERVER_URL;
+    const url = baseUrl.endsWith('/') ? `${baseUrl}settings.html` : `${baseUrl}/settings.html`;
+    settingsWin.loadURL(url)
   } else {
     settingsWin.loadFile(settingsHtml)
   }
