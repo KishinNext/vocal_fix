@@ -6,6 +6,7 @@ import fs from 'fs'
 
 export function registerIpcHandlers(preload: string, settingsHtml: string) {
   ipcMain.on('open-settings', () => {
+    console.log('[IPC] open-settings received — creating settings window')
     createSettingsWindow(preload, settingsHtml)
   })
 

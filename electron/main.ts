@@ -13,7 +13,7 @@ process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST, 
 
 const preload = join(__dirname, './preload.js')
 const indexHtml = join(process.env.DIST, 'index.html')
-const settingsHtml = join(process.env.DIST, 'settings.html')
+const settingsHtml = join(process.env.DIST, 'pages/settings.html')
 
 app.setName('VocalFix');
 if (process.platform === 'darwin') {
