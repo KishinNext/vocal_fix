@@ -1,6 +1,7 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
 import { initToneTabs } from './tone-tabs'
+import { Speaker } from './speech'
 import { TranscriptView } from './transcript-view'
 import {
   fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton, type RecordState,
@@ -32,9 +33,30 @@ document.addEventListener('DOMContentLoaded', () => {
     micSelect.addEventListener('change', () => audioRecorder.setMicrophone(micSelect.value))
   }
 
+  // ── Listen: reads the suggested text aloud ──
+  const speakBtn = document.getElementById('speakBtn') as HTMLButtonElement | null
+  const speakLabel = document.getElementById('speakBtnText')
+  const speaker = new Speaker()
+  const renderSpeak = () => {
+    if (speakLabel) speakLabel.textContent = speaker.isSpeaking ? 'Detener' : 'Escuchar'
+    if (speakBtn) speakBtn.disabled = !speaker.isSpeaking && !view?.naturalText()
+  }
+
   const view = transcriptionEl && reviewEl && primaryRecEl
-    ? new TranscriptView({ transcription: transcriptionEl, review: reviewEl, natural: primaryRecEl })
+    ? new TranscriptView({ transcription: transcriptionEl, review: reviewEl, natural: primaryRecEl }, renderSpeak)
     : null
+
+  speakBtn?.addEventListener('click', () => {
+    const text = view?.naturalText()
+    if (speaker.isSpeaking || !text) speaker.stop()
+    else speaker.speak(text, renderSpeak)
+    renderSpeak()
+  })
+
+  document.getElementById('clearBtn')?.addEventListener('click', () => {
+    speaker.stop()
+    view?.clear()
+  })
 
   // ── Recording: audio streams to the main process, which transcribes on every pause ──
   const setRecordState = (state: RecordState) => { if (recordBtn) renderRecordButton(recordBtn, state) }

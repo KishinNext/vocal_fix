@@ -41,9 +41,28 @@ export class TranscriptView {
   private readonly rows = new Map<string, Row>()
   private generation = 0
   private readonly panels: TranscriptPanels
+  private readonly placeholders: Map<HTMLElement, Node[]>
+  private readonly onChange: () => void
 
-  constructor(panels: TranscriptPanels) {
+  // onChange runs whenever the suggested text (naturalText) may have changed
+  constructor(panels: TranscriptPanels, onChange: () => void = () => {}) {
     this.panels = panels
+    this.onChange = onChange
+    this.placeholders = new Map(Object.values(panels).map(panel => [
+      panel, [...panel.childNodes].map(node => node.cloneNode(true)),
+    ]))
+  }
+
+  // Empties every panel and shows the "waiting for voice" placeholders again
+  clear() {
+    this.generation++ // results of a rewrite in progress no longer have a row to go to
+    this.segments.clear()
+    this.rows.clear()
+    for (const [panel, nodes] of this.placeholders) {
+      panel.replaceChildren(...nodes.map(node => node.cloneNode(true)))
+      delete panel.dataset.started
+    }
+    this.onChange()
   }
 
   partial(id: string, text: string) {
@@ -95,6 +114,7 @@ export class TranscriptView {
     const natural = this.row(id).natural
     natural.className = CLASSES.natural
     natural.textContent = text
+    this.onChange()
   }
 
   // Full suggested text, for copying
@@ -158,6 +178,7 @@ export class TranscriptView {
     row?.natural.remove()
     this.rows.delete(id)
     this.segments.delete(id)
+    this.onChange()
   }
 
   private paragraph(panel: HTMLElement, className: string) {

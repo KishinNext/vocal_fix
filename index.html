@@ -69,9 +69,9 @@
 </div>
 <!-- Document Metadata Footer -->
 <div class="pt-4 mt-6 border-t border-studio-borderSubtle flex items-center justify-between text-xs text-zinc-400">
-<button class="px-2.5 py-1 text-xs rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition border border-studio-border flex items-center gap-1.5">
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rotate-ccw" aria-hidden="true" class="lucide lucide-rotate-ccw w-3.5 h-3.5 text-zinc-400"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-<span class="">Volver a escuchar</span>
+<button id="clearBtn" type="button" title="Limpiar los tres paneles" class="px-2.5 py-1 text-xs rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 transition border border-studio-border flex items-center gap-1.5">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eraser" aria-hidden="true" class="lucide lucide-eraser w-3.5 h-3.5 text-zinc-400"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
+<span class="">Limpiar</span>
 </button>
 </div>
 </div>
@@ -132,9 +132,9 @@
 <!-- Studio Action Bar: Listen & Copy -->
 <div class="pt-4 border-t border-studio-borderSubtle flex items-center justify-between mt-auto">
 <div class="flex items-center gap-2">
-<button class="px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 border border-studio-border text-xs flex items-center gap-1.5 transition" title="Escuchar síntesis de voz natural">
+<button id="speakBtn" type="button" disabled class="px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200 border border-studio-border text-xs flex items-center gap-1.5 transition disabled:opacity-40 disabled:pointer-events-none" title="Escuchar la expresión natural">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="volume-2" aria-hidden="true" class="lucide lucide-volume-2 w-3.5 h-3.5 text-zinc-400"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"></path><path d="M16 9a5 5 0 0 1 0 6"></path><path d="M19.364 18.364a9 9 0 0 0 0-12.728"></path></svg>
-<span class="">Escuchar</span>
+<span id="speakBtnText">Escuchar</span>
 </button>
 <button class="p-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-studio-border text-xs transition" title="Insertar en la app activa">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="corner-down-left" aria-hidden="true" class="lucide lucide-corner-down-left w-3.5 h-3.5 text-zinc-400"><path d="M20 4v7a4 4 0 0 1-4 4H4"></path><path d="m9 10-5 5 5 5"></path></svg>

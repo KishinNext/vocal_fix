@@ -186,9 +186,17 @@ describe('StreamSession', () => {
 describe('cleanTranscript()', () => {
   it.each([
     ['[BLANK_AUDIO]', ''],
-    [' Thank you. [BLANK_AUDIO]\n', 'Thank you.'],
+    [' Hello there. [BLANK_AUDIO]\n', 'Hello there.'],
     ['(silence) hola [MUSIC] mundo *sighs*', 'hola mundo'],
     ['  Hello,\n  world.  ', 'Hello, world.'],
+    ['♪ ♪', ''],
+    ['♪ la la ♪', 'la la'],
+    // whisper's usual "silence" hallucinations, only when they are the whole utterance
+    [' Thank you.', ''],
+    ['Bubbles.', ''],
+    ['Thanks for watching!', ''],
+    ['I bought something. Thank you.', 'I bought something. Thank you.'],
+    ['Thank you, Maria.', 'Thank you, Maria.'],
   ])('%j -> %j', (input, expected) => {
     expect(cleanTranscript(input)).toBe(expected)
   })
@@ -331,10 +339,121 @@ describe('TranscriptView', () => {
     expect(texts(panels.natural)).toEqual(['Natural.'])
   })
 
+  it('clears every panel back to its placeholder and keeps working', () => {
+    const onChange = vi.fn()
+    const view = new TranscriptView(panels, onChange)
+    view.final('1-1', 'a')
+    view.grammar('1-1', 'A.')
+    view.natural('1-1', 'Natural.')
+    onChange.mockClear()
+
+    view.clear()
+    expect(onChange).toHaveBeenCalled()
+    expect(view.naturalText()).toBe('')
+    for (const panel of Object.values(panels)) expect(panel.textContent).toBe('Esperando voz...')
+
+    view.final('1-2', 'b')
+    expect(texts(panels.transcription)).toEqual(['b'])
+    expect(panels.transcription.textContent).not.toContain('Esperando')
+  })
+
+  it('drops rewrite results that arrive after clearing', async () => {
+    const view = new TranscriptView(panels)
+    view.final('1-1', 'a')
+    let release!: (v: string) => void
+    const rewrite = view.rewriteAll(() => new Promise<string>(r => { release = r }))
+    view.clear()
+    release('late')
+    await rewrite
+    expect(panels.natural.textContent).toBe('Esperando voz...')
+  })
+
+  it('notifies when the suggested text changes', () => {
+    const onChange = vi.fn()
+    const view = new TranscriptView(panels, onChange)
+    view.final('1-1', 'a')
+    view.natural('1-1', 'A.')
+    expect(onChange).toHaveBeenCalledTimes(1)
+    view.final('1-1', '')
+    expect(onChange).toHaveBeenCalledTimes(2)
+  })
+
   it('renders errors as text, never as markup', () => {
     const view = new TranscriptView(panels)
     view.error('<img src=x onerror="alert(1)">')
     expect(panels.transcription.querySelector('img')).toBeNull()
     expect(panels.transcription.textContent).toContain('<img')
+  })
+})
+
+describe('speech', () => {
+  const voice = (lang: string, localService = true) => ({ lang, localService, name: lang }) as SpeechSynthesisVoice
+
+  it('detects Spanish and English text', async () => {
+    const { detectLanguage } = await import('../src/speech')
+    expect(detectLanguage('I went to the office and bought something.')).toBe('en')
+    expect(detectLanguage('Ayer fui a la oficina y compré algo para el equipo.')).toBe('es')
+    expect(detectLanguage('¿Qué tal?')).toBe('es')
+  })
+
+  it('prefers an installed voice for the language', async () => {
+    const { pickVoice } = await import('../src/speech')
+    const voices = [voice('es-MX', false), voice('en-US'), voice('es-ES')]
+    expect(pickVoice(voices, 'es')?.lang).toBe('es-ES')
+    expect(pickVoice(voices, 'en')?.lang).toBe('en-US')
+    expect(pickVoice([voice('fr-FR')], 'en')).toBeNull()
+  })
+
+  describe('Speaker', () => {
+    let spoken: SpeechSynthesisUtterance[]
+
+    beforeEach(() => {
+      spoken = []
+      ;(globalThis as any).SpeechSynthesisUtterance = class {
+        text: string
+        lang = ''
+        voice: SpeechSynthesisVoice | null = null
+        onend: (() => void) | null = null
+        onerror: (() => void) | null = null
+        constructor(text: string) { this.text = text }
+      }
+      ;(globalThis as any).speechSynthesis = {
+        getVoices: () => [voice('en-US'), voice('es-ES')],
+        speak: (u: SpeechSynthesisUtterance) => { spoken.push(u) },
+        cancel: vi.fn(),
+      }
+    })
+
+    it('reads the text with a matching voice and reports the end once', async () => {
+      const { Speaker } = await import('../src/speech')
+      const speaker = new Speaker()
+      const onEnd = vi.fn()
+      speaker.speak('Hola, ¿cómo estás?', onEnd)
+      expect(speaker.isSpeaking).toBe(true)
+      expect(spoken[0].lang).toBe('es-ES')
+      expect(spoken[0].voice?.lang).toBe('es-ES')
+
+      spoken[0].onend!(new Event('end') as SpeechSynthesisEvent)
+      spoken[0].onerror!(new Event('error') as SpeechSynthesisErrorEvent)
+      expect(speaker.isSpeaking).toBe(false)
+      expect(onEnd).toHaveBeenCalledTimes(1)
+    })
+
+    it('stops immediately, ignoring late events from the cancelled utterance', async () => {
+      const { Speaker } = await import('../src/speech')
+      const speaker = new Speaker()
+      const first = vi.fn()
+      const second = vi.fn()
+      speaker.speak('one', first)
+      speaker.speak('two', second) // replaces the first
+      expect(first).toHaveBeenCalledTimes(1)
+      spoken[0].onend!(new Event('end') as SpeechSynthesisEvent) // late event of the first
+      expect(speaker.isSpeaking).toBe(true)
+      expect(second).not.toHaveBeenCalled()
+
+      speaker.stop()
+      expect(second).toHaveBeenCalledTimes(1)
+      expect(speaker.isSpeaking).toBe(false)
+    })
   })
 })
