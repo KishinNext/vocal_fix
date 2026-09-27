@@ -1,519 +1,137 @@
-<!DOCTYPE html><html class="dark" lang="es"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><title>VocalFix</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-background":"#e3e2e6","secondary-container":"#31503a","surface-dim":"#121316","on-tertiary":"#1e3243","tertiary-container":"#95aabe","primary-fixed":"#ffddbb","error-container":"#93000a","surface-container-low":"#1b1b1f","surface-container-highest":"#343538","primary":"#fcb96f","surface-container-high":"#292a2d","secondary-fixed":"#c8ebce","outline-variant":"#514539","surface-bright":"#38393c","on-tertiary-fixed":"#061d2d","on-secondary":"#183623","on-primary-fixed-variant":"#673d00","on-error":"#690005","primary-container":"#d99b54","tertiary":"#b3c9de","outline":"#9e8e7f","inverse-primary":"#855311","on-surface":"#e3e2e6","on-error-container":"#ffdad6","on-primary":"#482900","surface":"#121316","secondary":"#adcfb3","on-tertiary-container":"#2a3f4f","on-secondary-fixed-variant":"#2f4d38","background":"#121316","on-tertiary-fixed-variant":"#34495a","on-surface-variant":"#d5c3b3","surface-variant":"#343538","surface-container":"#1f1f23","inverse-on-surface":"#2f3034","surface-tint":"#fcb96f","on-secondary-fixed":"#02210f","primary-fixed-dim":"#fcb96f","on-primary-container":"#593400","error":"#ffb4ab","on-secondary-container":"#9fc1a5","secondary-fixed-dim":"#adcfb3","on-primary-fixed":"#2b1700","inverse-surface":"#e3e2e6","tertiary-fixed-dim":"#b3c9de","tertiary-fixed":"#cfe5fa","surface-container-lowest":"#0d0e11"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"margin":"1rem","space-xl":"1.5rem","space-sm":"0.5rem","space-md":"0.75rem","gutter-compact":"0.5rem","gutter":"0.75rem","space-xs":"0.25rem","space-lg":"1rem"},"fontFamily":{"label-sm":["JetBrains Mono"],"label-md":["JetBrains Mono"],"label-xs":["JetBrains Mono"],"body-lg":["Inter"],"headline-lg":["Inter"],"headline-md":["Inter"],"headline-xl":["Inter"],"body-sm":["Inter"],"body-md":["Inter"]},"fontSize":{"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.03em","fontWeight":"500"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"500"}],"label-xs":["10px",{"lineHeight":"12px","letterSpacing":"0.04em","fontWeight":"400"}],"body-lg":["15px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"500"}],"headline-xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}],"body-md":["13px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased select-none min-h-screen"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest border-b border-white/[0.07]" style="-webkit-app-region: drag;"><div class="h-8 w-full"></div><div class="h-9 w-full px-3 flex items-center" style="-webkit-app-region: no-drag;"><button data-path="editor" class="flex items-center justify-center w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Volver al Editor"><span class="material-symbols-outlined text-[18px]">arrow_back</span></button></div></header><aside class="fixed top-14 left-0 bottom-8 w-64 bg-surface-container-lowest/80 backdrop-blur-md z-30 shadow-[1px_0_8px_rgba(0,0,0,0.35)] flex flex-col justify-between overflow-y-auto"><div class="p-3"><div class="px-3 pt-2 pb-2.5 font-label-xs text-label-xs uppercase tracking-wider text-outline">Configuración</div><nav class="flex flex-col gap-0.5" data-active-classes="bg-surface-container-high text-on-surface font-medium"><a class="px-3 py-2 rounded text-on-surface-variant font-body-sm text-body-sm hover:text-on-surface hover:bg-surface-container-low transition-colors truncate" data-path="modelos-locales" href="#">Modelos Locales</a><a class="px-3 py-2 rounded text-on-surface-variant font-body-sm text-body-sm hover:text-on-surface hover:bg-surface-container-low transition-colors truncate" data-path="transcripcion-audio" href="#">Transcripción &amp; Audio</a><a class="px-3 py-2 rounded text-on-surface-variant font-body-sm text-body-sm hover:text-on-surface hover:bg-surface-container-low transition-colors truncate" data-path="reglas-gramaticales-estilo" href="#">Reglas Gramaticales &amp; Estilo</a><a class="px-3 py-2 rounded text-on-surface-variant font-body-sm text-body-sm hover:text-on-surface hover:bg-surface-container-low transition-colors truncate" data-path="atajos-teclado-hotkeys" href="#">Atajos de Teclado &amp; Hotkeys</a><a class="px-3 py-2 rounded text-on-surface-variant font-body-sm text-body-sm hover:text-on-surface hover:bg-surface-container-low transition-colors truncate" data-path="almacenamiento-privacidad" href="#">Almacenamiento &amp; Privacidad</a></nav></div><div class="p-3 mx-2 mb-2 rounded bg-surface-container-low/60 shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><div class="flex items-center justify-between mb-1"><span class="font-label-xs text-label-xs text-on-surface-variant">VRAM en uso</span><span class="font-label-xs text-label-xs text-primary">3.4 / 16 GB</span></div><div class="w-full h-1 rounded-full bg-surface-container-highest overflow-hidden"><div class="h-full bg-primary rounded-full w-[21%]"></div></div></div></aside><main class="w-full pt-[68px] pl-64 pb-8 min-h-screen bg-surface"><div class="flex flex-col w-full">
-<div class="px-8 py-7 flex flex-col gap-8 max-w-5xl">
-<!-- Header Contextual -->
-<div class="flex flex-col gap-2">
-<div class="flex items-center gap-2 text-on-surface-variant font-label-xs text-label-xs tracking-wider uppercase">
-<span class="">Ajustes</span>
-<span class="">/</span>
-<span class="text-primary font-label-xs text-label-xs">Motor Lingüístico Local</span>
-</div>
-<div class="flex flex-col md:flex-row md:items-baseline justify-between gap-4">
-<div>
-<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Reglas Gramaticales &amp; Estilo</h1>
-<p class="font-body-md text-body-md text-on-surface-variant mt-1 max-w-2xl">
-            Ajusta los parámetros con los que el LLM local procesa la sintaxis oral, filtra disfluencias y aplica normas fonético-ortográficas en tiempo de inferencia sin enviar datos a la red.
-          </p>
-</div>
-<div class="flex items-center gap-2 self-start md:self-auto px-3 py-1.5 rounded-lg bg-surface-container-low shadow-sm">
-<span class="w-2 h-2 rounded-full bg-secondary"></span>
-<span class="font-label-sm text-label-sm text-on-surface">Mistral-7B Instruct (Q4_K_M)</span>
-</div>
-</div>
-</div>
-<!-- Active Correction Profile Selector -->
-<div class="rounded-xl bg-surface-container-low p-5 shadow-sm flex flex-col gap-4">
-<div class="flex items-center justify-between">
-<div class="flex flex-col gap-0.5">
-<span class="font-label-xs text-label-xs uppercase tracking-wider text-outline">Preset de Inferencia</span>
-<h2 class="font-headline-md text-headline-md text-on-surface">Perfil de Corrección Activo</h2>
-</div>
-<span class="font-label-xs text-label-xs text-on-surface-variant px-2 py-0.5 rounded bg-surface-container-highest">Latencia estimada: 42ms</span>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5" id="profile-grid">
-<!-- Preset 1: Conversacional -->
-<button class="profile-card text-left p-3.5 rounded-lg bg-surface-container-high text-on-surface transition-all shadow-sm flex flex-col justify-between gap-3 group" data-profile="conversational" type="button">
-<div class="flex items-center justify-between w-full">
-<span class="font-body-md text-body-md font-medium text-primary">Conversacional</span>
-<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-            Preserva la cadencia informal eliminando repeticiones obvias pero manteniendo la espontaneidad del habla diaria.
-          </p>
-<div class="flex items-center gap-1.5 font-label-xs text-label-xs text-outline">
-<span class="">Tolerancia alta</span>
-<span class="">·</span>
-<span class="">Estilo vivo</span>
-</div>
+<!DOCTYPE html><html class="dark" lang="es" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><title>VocalFix - Reglas Gramaticales</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-background":"#e3e2e6","secondary-container":"#31503a","surface-dim":"#121316","on-tertiary":"#1e3243","tertiary-container":"#95aabe","primary-fixed":"#ffddbb","error-container":"#93000a","surface-container-low":"#1b1b1f","surface-container-highest":"#343538","primary":"#fcb96f","surface-container-high":"#292a2d","secondary-fixed":"#c8ebce","outline-variant":"#514539","surface-bright":"#38393c","on-tertiary-fixed":"#061d2d","on-secondary":"#183623","on-primary-fixed-variant":"#673d00","on-error":"#690005","primary-container":"#d99b54","tertiary":"#b3c9de","outline":"#9e8e7f","inverse-primary":"#855311","on-surface":"#e3e2e6","on-error-container":"#ffdad6","on-primary":"#482900","surface":"#141416","secondary":"#adcfb3","on-tertiary-container":"#2a3f4f","on-secondary-fixed-variant":"#2f4d38","background":"#141416","on-tertiary-fixed-variant":"#34495a","on-surface-variant":"#d5c3b3","surface-variant":"#343538","surface-container":"#1f1f23","inverse-on-surface":"#2f3034","surface-tint":"#fcb96f","on-secondary-fixed":"#02210f","primary-fixed-dim":"#fcb96f","on-primary-container":"#593400","error":"#ffb4ab","on-secondary-container":"#9fc1a5","secondary-fixed-dim":"#adcfb3","on-primary-fixed":"#2b1700","inverse-surface":"#e3e2e6","tertiary-fixed-dim":"#b3c9de","tertiary-fixed":"#cfe5fa","surface-container-lowest":"#0d0e11"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"margin":"1rem","space-xl":"1.5rem","space-sm":"0.5rem","space-md":"0.75rem","gutter-compact":"0.5rem","gutter":"0.75rem","space-xs":"0.25rem","space-lg":"1rem"},"fontFamily":{"label-sm":["JetBrains Mono"],"label-md":["JetBrains Mono"],"label-xs":["JetBrains Mono"],"body-lg":["Inter"],"headline-lg":["Inter"],"headline-md":["Inter"],"headline-xl":["Inter"],"body-sm":["Inter"],"body-md":["Inter"]},"fontSize":{"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.03em","fontWeight":"500"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"500"}],"label-xs":["10px",{"lineHeight":"12px","letterSpacing":"0.04em","fontWeight":"400"}],"body-lg":["15px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"500"}],"headline-xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}],"body-md":["13px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased select-none min-h-screen flex flex-col justify-between" data-page="rules"><header class="fixed top-0 left-0 right-0 z-50 h-12 bg-background border-b border-white/[0.08] flex items-center pl-20 pr-4" style="-webkit-app-region: drag;"></header><main class="w-full pt-12 flex-1 bg-surface">
+<div class="w-full flex flex-col lg:flex-row min-h-[calc(100vh-3rem)]">
+<!-- Sidebar: rendered by src/settings/shared.ts (renderSettingsNav) -->
+<aside class="w-full lg:w-72 shrink-0 bg-surface-container-low lg:min-h-full flex flex-col p-4 gap-3">
+<button type="button" data-path="editor" title="Volver al Editor" class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm text-left">
+<span class="material-symbols-outlined text-[17px] text-outline">arrow_back</span>
+<span>Volver al editor</span>
 </button>
-<!-- Preset 2: Académico -->
-<button class="profile-card text-left p-3.5 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all shadow-sm flex flex-col justify-between gap-3 group" data-profile="academic" type="button">
-<div class="flex items-center justify-between w-full">
-<span class="font-body-md text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">Académico / Técnico</span>
-<span class="material-symbols-outlined text-[18px] text-outline opacity-40">radio_button_unchecked</span>
+<nav id="settings-nav" class="flex flex-col gap-1" data-active="reglas-gramaticales-estilo"></nav>
+</aside>
+<section class="flex-1 flex flex-col bg-surface p-6 lg:p-10 gap-8 min-w-0 max-w-6xl">
+<div class="flex items-end justify-between gap-4">
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center gap-2 font-label-xs text-label-xs text-outline uppercase tracking-wider">
+      <span>Configuración</span>
+      <span class="text-surface-container-highest">/</span>
+      <span class="text-primary">Motor Lingüístico</span>
+    </div>
+    <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Reglas Gramaticales &amp; Estilo</h1>
+  </div>
+  <p id="settings-status" role="status" class="hidden font-label-xs text-label-xs text-right"></p>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-            Reestructura enunciados pasivos, eleva el léxico y unifica convenciones bibliográficas y científicas.
-          </p>
-<div class="flex items-center gap-1.5 font-label-xs text-label-xs text-outline">
-<span class="">Rigor sintáctico</span>
-<span class="">·</span>
-<span class="">Léxico preciso</span>
-</div>
-</button>
-<!-- Preset 3: Negocios -->
-<button class="profile-card text-left p-3.5 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all shadow-sm flex flex-col justify-between gap-3 group" data-profile="business" type="button">
-<div class="flex items-center justify-between w-full">
-<span class="font-body-md text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">Negocios &amp; Email</span>
-<span class="material-symbols-outlined text-[18px] text-outline opacity-40">radio_button_unchecked</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-            Orientado a la claridad ejecutiva. Párrafos concisos, viñetas lógicas y eliminación de rodeos verbales.
-          </p>
-<div class="flex items-center gap-1.5 font-label-xs text-label-xs text-outline">
-<span class="">Claridad directa</span>
-<span class="">·</span>
-<span class="">Tono asertivo</span>
-</div>
-</button>
-<!-- Preset 4: Español L1 a Inglés -->
-<button class="profile-card text-left p-3.5 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all shadow-sm flex flex-col justify-between gap-3 group" data-profile="l1-es" type="button">
-<div class="flex items-center justify-between w-full">
-<span class="font-body-md text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">Español L1 → Inglés</span>
-<span class="material-symbols-outlined text-[18px] text-outline opacity-40">radio_button_unchecked</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-            Neutraliza calcos semánticos y estructuras de orden sintáctico habituales en hablantes de español.
-          </p>
-<div class="flex items-center gap-1.5 font-label-xs text-label-xs text-outline">
-<span class="">Falsos amigos</span>
-<span class="">·</span>
-<span class="">Idiomatismo</span>
-</div>
-</button>
-</div>
-</div>
-<!-- Reglas y Detección de Errores -->
-<div class="flex flex-col gap-4">
-<div class="flex items-center justify-between px-1">
-<div>
-<h2 class="font-headline-md text-headline-md text-on-surface">Reglas de Detección e Inferencia</h2>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Activación modular de los clasificadores de tokens durante el post-procesamiento.</p>
-</div>
-<div class="hidden sm:flex items-center gap-2">
-<button class="font-label-xs text-label-xs px-2.5 py-1 rounded bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors" id="btn-select-all" type="button">Activar todas</button>
-<button class="font-label-xs text-label-xs px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant transition-colors" id="btn-strict-mode" type="button">Modo estricto</button>
-</div>
-</div>
-<div class="flex flex-col gap-2">
-<!-- Rule Item 1: Interferencia Lingüística -->
-<div class="p-4 rounded-xl bg-surface-container-low shadow-sm transition-colors hover:bg-surface-container flex flex-col gap-3">
-<div class="flex items-start justify-between gap-4">
-<div class="flex items-start gap-3">
-<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 mt-0.5 text-primary">
-<span class="material-symbols-outlined text-[18px]">translate</span>
-</div>
-<div class="flex flex-col gap-1 min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-headline-md text-headline-md text-on-surface">Interferencia lingüística hispanohablante</span>
-<span class="font-label-xs text-label-xs px-2 py-0.5 rounded bg-primary/10 text-primary">Calcos &amp; Falsos Amigos</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                  Detecta transferencias estructurales erróneas del español al inglés (ej. <em class="text-on-surface font-label-xs text-label-xs not-italic">"I have 26 years" → "I am 26 years old"</em>) y confusiones léxicas clásicas como <em class="text-on-surface font-label-xs text-label-xs not-italic">sensible</em> frente a <em class="text-on-surface font-label-xs text-label-xs not-italic">sensitive</em>.
-                </p>
-</div>
-</div>
-<!-- Toggle Switch -->
-<label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-<input checked="" class="sr-only peer rule-toggle" type="checkbox">
-<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary-container after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:border-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-</label>
-</div>
-<!-- Micro-specimen preview -->
-<div class="ml-11 p-2.5 rounded-lg bg-surface-container-lowest font-label-xs text-label-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-on-surface-variant">
-<div class="flex items-center gap-2">
-<span class="text-error line-through">“Actually, I am living in Madrid”</span>
-<span class="text-outline">→</span>
-<span class="text-secondary">“Currently, I live in Madrid”</span>
-</div>
-<span class="font-label-xs text-label-xs text-outline shrink-0">Confianza: 98.4%</span>
-</div>
-</div>
-<!-- Rule Item 2: Disfluencias y Muletillas -->
-<div class="p-4 rounded-xl bg-surface-container-low shadow-sm transition-colors hover:bg-surface-container flex flex-col gap-3">
-<div class="flex items-start justify-between gap-4">
-<div class="flex items-start gap-3">
-<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 mt-0.5 text-secondary">
-<span class="material-symbols-outlined text-[18px]">voice_selection</span>
-</div>
-<div class="flex flex-col gap-1 min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-headline-md text-headline-md text-on-surface">Eliminación de muletillas y vacilaciones</span>
-<span class="font-label-xs text-label-xs px-2 py-0.5 rounded bg-secondary-container/40 text-secondary">Disfluencias orales</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                  Filtra titubeos vocálicos (<em class="text-on-surface font-label-xs text-label-xs not-italic">"eh", "um", "este"</em>) y muletillas de relleno conversacional repetitivas (<em class="text-on-surface font-label-xs text-label-xs not-italic">"like", "you know", "o sea"</em>).
-                </p>
-</div>
-</div>
-<label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-<input checked="" class="sr-only peer rule-toggle" type="checkbox">
-<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary-container after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:border-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-</label>
-</div>
-<!-- Sub-control selector -->
-<div class="ml-11 pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
-<span class="">Tratamiento de pausas:</span>
-</div>
-<div class="flex items-center bg-surface-container-lowest p-1 rounded-lg gap-1">
-<button class="px-3 py-1 rounded font-label-xs text-label-xs bg-surface-container-high text-on-surface" type="button">Limpieza quirúrgica</button>
-<button class="px-3 py-1 rounded font-label-xs text-label-xs text-on-surface-variant hover:text-on-surface transition-colors" type="button">Preservar pausas naturales</button>
-<button class="px-3 py-1 rounded font-label-xs text-label-xs text-on-surface-variant hover:text-on-surface transition-colors" type="button">Marcar con elipses (...)</button>
-</div>
-</div>
-</div>
-<!-- Rule Item 3: Puntuación por Cadencia y Respiración -->
-<div class="p-4 rounded-xl bg-surface-container-low shadow-sm transition-colors hover:bg-surface-container flex flex-col gap-3">
-<div class="flex items-start justify-between gap-4">
-<div class="flex items-start gap-3">
-<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 mt-0.5 text-tertiary">
-<span class="material-symbols-outlined text-[18px]">graphic_eq</span>
-</div>
-<div class="flex flex-col gap-1 min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-headline-md text-headline-md text-on-surface">Puntuación acústica por cadencia de respiración</span>
-<span class="font-label-xs text-label-xs px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant">Prosodia &amp; VAD</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                  Inserta comas, puntos seguidos y signos interrogativos basándose en los valles de amplitud del audio (pausas de aire &gt; 350ms) cruzados con la métrica sintáctica del modelo.
-                </p>
-</div>
-</div>
-<label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-<input checked="" class="sr-only peer rule-toggle" type="checkbox">
-<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary-container after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:border-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-</label>
-</div>
-<!-- Slider de Umbral de Silencio -->
-<div class="ml-11 pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
-<span class="">Umbral de silencio respiratorio:</span>
-</div>
-<div class="flex items-center gap-3 w-full sm:w-64">
-<input class="w-full h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary" id="breath-threshold-slider" max="600" min="150" step="25" type="range" value="350">
-<span class="font-label-sm text-label-sm text-on-surface min-w-[50px] text-right" id="breath-threshold-label">350 ms</span>
-</div>
-</div>
-</div>
-<!-- Rule Item 4: Concordancia Gramatical -->
-<div class="p-4 rounded-xl bg-surface-container-low shadow-sm transition-colors hover:bg-surface-container flex flex-col gap-3">
-<div class="flex items-start justify-between gap-4">
-<div class="flex items-start gap-3">
-<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 mt-0.5 text-on-surface-variant">
-<span class="material-symbols-outlined text-[18px]">rule</span>
-</div>
-<div class="flex flex-col gap-1 min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-headline-md text-headline-md text-on-surface">Concordancia temporal, de género y número</span>
-<span class="font-label-xs text-label-xs px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant">Morfosintaxis</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                  Corrige incongruencias producidas por reformulaciones espontáneas a mitad de frase (ej. cambiar de sujeto en el predicado o mezclar pretéritos incompatibles).
-                </p>
-</div>
-</div>
-<label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-<input checked="" class="sr-only peer rule-toggle" type="checkbox">
-<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary-container after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:border-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-</label>
-</div>
-</div>
-<!-- Rule Item 5: Tono y Formalidad -->
-<div class="p-4 rounded-xl bg-surface-container-low shadow-sm transition-colors hover:bg-surface-container flex flex-col gap-3">
-<div class="flex items-start justify-between gap-4">
-<div class="flex items-start gap-3">
-<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 mt-0.5 text-primary">
-<span class="material-symbols-outlined text-[18px]">format_quote</span>
-</div>
-<div class="flex flex-col gap-1 min-w-0">
-<div class="flex items-center gap-2 flex-wrap">
-<span class="font-headline-md text-headline-md text-on-surface">Nivel de formalidad y tono de registro</span>
-<span class="font-label-xs text-label-xs px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant">Pragmática</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                  Normaliza contracciones coloquiales (<em class="text-on-surface font-label-xs text-label-xs not-italic">"gonna", "wanna", "pa' allá"</em>) según el nivel objetivo seleccionado.
-                </p>
-</div>
-</div>
-<label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-<input checked="" class="sr-only peer rule-toggle" type="checkbox">
-<div class="w-10 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-primary-container after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-surface after:border-surface after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-</label>
-</div>
-<!-- Selector de formalidad -->
-<div class="ml-11 pt-1 flex items-center justify-between gap-4">
-<span class="font-body-sm text-body-sm text-on-surface-variant">Registro objetivo:</span>
-<div class="flex items-center bg-surface-container-lowest p-1 rounded-lg gap-1">
-<button class="px-3 py-1 rounded font-label-xs text-label-xs text-on-surface-variant hover:text-on-surface transition-colors" type="button">Directo / Coloquial</button>
-<button class="px-3 py-1 rounded font-label-xs text-label-xs bg-surface-container-high text-on-surface" type="button">Neutral Estándar</button>
-<button class="px-3 py-1 rounded font-label-xs text-label-xs text-on-surface-variant hover:text-on-surface transition-colors" type="button">Protocolar / Elevado</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Glosario y Vocabulario Personalizado -->
-<div class="rounded-xl bg-surface-container-low p-5 shadow-sm flex flex-col gap-4">
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-<div class="flex flex-col gap-0.5">
-<div class="flex items-center gap-2">
-<h2 class="font-headline-md text-headline-md text-on-surface">Glosario &amp; Vocabulario Protegido</h2>
-<span class="font-label-xs text-label-xs px-2 py-0.5 rounded bg-surface-container-highest text-on-surface">8 términos activos</span>
-</div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-            Entidades nombradas, acrónimos técnicos y neologismos que el modelo preservará intactos sin intentar corregirlos fonéticamente.
-          </p>
-</div>
-<div class="flex items-center gap-2 shrink-0">
-<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-body-sm text-body-sm transition-colors shadow-sm" type="button">
-<span class="material-symbols-outlined text-[16px]">file_upload</span>
-<span class="">Importar CSV</span>
-</button>
-</div>
-</div>
-<!-- Input de entrada rápida -->
-<div class="flex items-center gap-2 bg-surface-container-lowest p-1.5 rounded-lg shadow-sm">
-<span class="material-symbols-outlined text-[18px] text-outline ml-2">add</span>
-<input class="bg-transparent border-0 text-on-surface font-body-md text-body-md placeholder:text-outline focus:outline-none w-full py-1" id="new-term-input" placeholder="Añadir nuevo término (ej. Whisper, CoreAudio, PyTorch)..." type="text">
-<button class="px-3 py-1 rounded bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-sm text-label-sm shrink-0 transition-colors" id="add-term-btn" type="button">
-          Añadir
-        </button>
-</div>
-<!-- Tag Cloud de Términos Protegidos -->
-<div class="flex flex-wrap gap-2 pt-1" id="terms-container">
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-primary font-medium">VocalFix</span>
-<span class="text-outline text-label-xs">App</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">BlackHole 2ch</span>
-<span class="text-outline text-label-xs">Audio Driver</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">Mistral-7B</span>
-<span class="text-outline text-label-xs">Modelo</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">Metal API</span>
-<span class="text-outline text-label-xs">Hardware</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">Shure SM7B</span>
-<span class="text-outline text-label-xs">Hardware</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">CoreAudio</span>
-<span class="text-outline text-label-xs">macOS</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">quantization Q4_K_M</span>
-<span class="text-outline text-label-xs">Técnico</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group">
-<span class="text-on-surface">VAD (Voice Activity)</span>
-<span class="text-outline text-label-xs">DSP</span>
-<button class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término" type="button">
-<span class="material-symbols-outlined text-[14px]">close</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Diagnostic & Engine Stats Card -->
-<div class="p-4 rounded-xl bg-surface-container-lowest flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-on-surface-variant font-label-xs text-label-xs shadow-sm">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-[20px] text-secondary">memory</span>
-<div class="flex flex-col">
-<span class="text-on-surface font-medium">Pipeline Semántico Listo</span>
-<span class="">Inferencia acelerada mediante Metal MPS · Context Window: 4096 tokens</span>
-</div>
-</div>
-<div class="flex items-center gap-6">
-<div class="flex flex-col items-end">
-<span class="text-outline">Pérdida de perplejidad</span>
-<span class="text-on-surface font-label-sm text-label-sm">0.018 bpw</span>
-</div>
-<div class="flex flex-col items-end">
-<span class="text-outline">Tasa de corrección</span>
-<span class="text-primary font-label-sm text-label-sm">~14.2% palabras</span>
-</div>
-</div>
-</div>
-<!-- Barra de Acciones / Pie de Página de Ajustes -->
-<div class="pt-4 pb-12 flex items-center justify-between border-t-0">
-<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-all shadow-sm" id="btn-reset" type="button">
-<span class="material-symbols-outlined text-[16px]">restart_alt</span>
-<span class="">Restaurar reglas por defecto</span>
-</button>
-<div class="flex items-center gap-3">
-<span class="font-label-xs text-label-xs text-outline hidden sm:inline transition-opacity opacity-0" id="save-status">Cambios guardados en config.local.json</span>
-<button class="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-body-sm text-body-sm font-medium transition-all shadow-md active:scale-95" id="btn-save" type="button">
-<span class="material-symbols-outlined text-[18px]">check</span>
-<span class="">Guardar cambios</span>
-</button>
-</div>
-</div>
-</div>
-</div>
-<script>
-  (function() {
-    // Manejo de Selección de Perfil Activo
-    const profileCards = document.querySelectorAll('.profile-card');
-    profileCards.forEach(card => {
-      card.addEventListener('click', () => {
-        profileCards.forEach(c => {
-          c.classList.remove('bg-surface-container-high');
-          c.classList.add('bg-surface-container');
-          const title = c.querySelector('span:first-child');
-          if (title) {
-            title.classList.remove('text-primary');
-            title.classList.add('text-on-surface');
-          }
-          const icon = c.querySelector('.material-symbols-outlined');
-          if (icon) {
-            icon.textContent = 'radio_button_unchecked';
-            icon.classList.remove('text-primary');
-            icon.classList.add('text-outline', 'opacity-40');
-          }
-        });
 
-        card.classList.remove('bg-surface-container');
-        card.classList.add('bg-surface-container-high');
-        const activeTitle = card.querySelector('span:first-child');
-        if (activeTitle) {
-          activeTitle.classList.add('text-primary');
-          activeTitle.classList.remove('text-on-surface');
-        }
-        const activeIcon = card.querySelector('.material-symbols-outlined');
-        if (activeIcon) {
-          activeIcon.textContent = 'check_circle';
-          activeIcon.classList.remove('text-outline', 'opacity-40');
-          activeIcon.classList.add('text-primary');
-        }
-      });
-    });
+<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
+  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
+    <div class="flex items-center gap-2.5">
+      <span class="material-symbols-outlined text-[20px] text-primary">tune</span>
+      <div>
+        <h2 class="font-body-md text-body-md font-medium text-on-surface">Perfil de Corrección</h2>
+        <p class="font-label-xs text-label-xs text-outline">Tono y registro que el modelo aplica al corregir</p>
+      </div>
+    </div>
+  </div>
+  <div role="radiogroup" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+    <button type="button" role="radio" data-profile="conversational" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
+      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
+      <div class="flex flex-col gap-1">
+        <span class="font-body-sm text-body-sm font-medium text-on-surface">Conversacional</span>
+        <span class="font-label-xs text-label-xs text-on-surface-variant">Mantiene un tono informal y natural, eliminando repeticiones obvias.</span>
+      </div>
+    </button>
+    <button type="button" role="radio" data-profile="academic" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
+      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
+      <div class="flex flex-col gap-1">
+        <span class="font-body-sm text-body-sm font-medium text-on-surface">Académico / Técnico</span>
+        <span class="font-label-xs text-label-xs text-on-surface-variant">Registro formal y léxico preciso.</span>
+      </div>
+    </button>
+    <button type="button" role="radio" data-profile="business" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
+      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
+      <div class="flex flex-col gap-1">
+        <span class="font-body-sm text-body-sm font-medium text-on-surface">Negocios &amp; Email</span>
+        <span class="font-label-xs text-label-xs text-on-surface-variant">Claridad ejecutiva: frases concisas y tono profesional.</span>
+      </div>
+    </button>
+    <button type="button" role="radio" data-profile="concise" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
+      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
+      <div class="flex flex-col gap-1">
+        <span class="font-body-sm text-body-sm font-medium text-on-surface">Conciso</span>
+        <span class="font-label-xs text-label-xs text-on-surface-variant">Lo más breve posible: elimina redundancias sin perder ninguna idea clave.</span>
+      </div>
+    </button>
+    <button type="button" role="radio" data-profile="es-en" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
+      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
+      <div class="flex flex-col gap-1">
+        <span class="font-body-sm text-body-sm font-medium text-on-surface">Español L1 → Inglés</span>
+        <span class="font-label-xs text-label-xs text-on-surface-variant">Para inglés dictado por hispanohablantes: corrige calcos y falsos amigos.</span>
+      </div>
+    </button>
+  </div>
+</div>
 
-    // Slider de Cadencia de Respiración
-    const slider = document.getElementById('breath-threshold-slider');
-    const label = document.getElementById('breath-threshold-label');
-    if (slider && label) {
-      slider.addEventListener('input', (e) => {
-        label.textContent = e.target.value + ' ms';
-      });
-    }
+<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
+  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
+    <div class="flex items-center gap-2.5">
+      <span class="material-symbols-outlined text-[20px] text-primary">rule</span>
+      <div>
+        <h2 class="font-body-md text-body-md font-medium text-on-surface">Reglas de Corrección</h2>
+        <p class="font-label-xs text-label-xs text-outline">Instrucciones adicionales para el modelo</p>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col gap-2.5 pt-1">
+    <div class="flex items-center justify-between gap-4 p-3 rounded bg-surface-container">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-[18px] text-outline">voice_selection</span>
+        <div class="flex flex-col gap-0.5">
+          <span class="font-body-sm text-body-sm font-medium text-on-surface">Eliminar muletillas y vacilaciones</span>
+          <span class="font-label-xs text-label-xs text-on-surface-variant">Quita “eh”, “um”, “este”, “o sea”, “like”, “you know”.</span>
+        </div>
+      </div>
+      <button type="button" role="switch" aria-checked="false" data-rule="removeFillers" aria-label="Eliminar muletillas y vacilaciones" class="relative shrink-0 w-9 h-5 rounded-full bg-surface-container-highest transition-colors">
+        <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-on-surface transition-transform"></span>
+      </button>
+    </div>
+    <div class="flex items-center justify-between gap-4 p-3 rounded bg-surface-container">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-[18px] text-outline">format_quote</span>
+        <div class="flex flex-col gap-0.5">
+          <span class="font-body-sm text-body-sm font-medium text-on-surface">Expandir contracciones coloquiales</span>
+          <span class="font-label-xs text-label-xs text-on-surface-variant">“gonna” → “going to”, “pa’” → “para”.</span>
+        </div>
+      </div>
+      <button type="button" role="switch" aria-checked="false" data-rule="normalizeContractions" aria-label="Expandir contracciones coloquiales" class="relative shrink-0 w-9 h-5 rounded-full bg-surface-container-highest transition-colors">
+        <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-on-surface transition-transform"></span>
+      </button>
+    </div>
+  </div>
+</div>
 
-    // Toggle rápido de todas las reglas
-    const btnSelectAll = document.getElementById('btn-select-all');
-    if (btnSelectAll) {
-      btnSelectAll.addEventListener('click', () => {
-        const toggles = document.querySelectorAll('.rule-toggle');
-        const anyUnchecked = Array.from(toggles).some(t => !t.checked);
-        toggles.forEach(t => t.checked = anyUnchecked);
-        btnSelectAll.textContent = anyUnchecked ? 'Desactivar todas' : 'Activar todas';
-      });
-    }
+<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
+  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
+    <div class="flex items-center gap-2.5">
+      <span class="material-symbols-outlined text-[20px] text-primary">menu_book</span>
+      <div>
+        <h2 class="font-body-md text-body-md font-medium text-on-surface">Glosario</h2>
+        <p class="font-label-xs text-label-xs text-outline">Términos que el modelo nunca debe modificar</p>
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center gap-2 pt-1">
+    <input id="glossary-input" type="text" maxlength="60" placeholder="Añadir término (Enter)" class="flex-1 bg-surface-container text-on-surface px-2.5 py-1.5 rounded font-label-md text-label-md focus:outline-none focus:ring-1 focus:ring-primary border border-surface-container-highest/40 placeholder:text-outline">
+    <button type="button" id="glossary-add" class="px-3 py-1.5 rounded bg-surface-container-highest hover:bg-surface-bright text-on-surface-variant hover:text-on-surface font-label-xs text-label-xs transition-colors">Añadir</button>
+  </div>
+  <div id="glossary-terms" class="flex flex-wrap gap-1.5"></div>
+</div>
 
-    // Glosario Interactivo
-    const newTermInput = document.getElementById('new-term-input');
-    const addTermBtn = document.getElementById('add-term-btn');
-    const termsContainer = document.getElementById('terms-container');
-
-    function addNewTerm() {
-      if (!newTermInput) return;
-      const val = newTermInput.value.trim();
-      if (!val) return;
-
-      const item = document.createElement('div');
-      item.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm group animate-fade-in';
-      item.innerHTML = `
-        <span class="text-primary">${val}</span>
-        <span class="text-outline text-label-xs">Manual</span>
-        <button type="button" class="text-outline hover:text-error transition-colors flex items-center" title="Eliminar término">
-          <span class="material-symbols-outlined text-[14px]">close</span>
-        </button>
-      `;
-
-      item.querySelector('button').addEventListener('click', () => item.remove());
-      termsContainer.appendChild(item);
-      newTermInput.value = '';
-    }
-
-    if (addTermBtn && newTermInput) {
-      addTermBtn.addEventListener('click', addNewTerm);
-      newTermInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') addNewTerm();
-      });
-    }
-
-    // Eliminación de términos existentes
-    document.querySelectorAll('#terms-container button').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const parentTag = e.target.closest('.group');
-        if (parentTag) parentTag.remove();
-      });
-    });
-
-    // Guardar Cambios Feedbacks
-    const saveBtn = document.getElementById('btn-save');
-    const saveStatus = document.getElementById('save-status');
-    if (saveBtn && saveStatus) {
-      saveBtn.addEventListener('click', () => {
-        saveStatus.classList.remove('opacity-0');
-        saveStatus.classList.add('opacity-100');
-        saveBtn.classList.add('bg-secondary', 'text-on-secondary');
-        setTimeout(() => {
-          saveStatus.classList.remove('opacity-100');
-          saveStatus.classList.add('opacity-0');
-          saveBtn.classList.remove('bg-secondary', 'text-on-secondary');
-        }, 2200);
-      });
-    }
-
-    // Reset feedback
-    const resetBtn = document.getElementById('btn-reset');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        document.querySelectorAll('.rule-toggle').forEach(t => t.checked = true);
-        if (slider && label) {
-          slider.value = 350;
-          label.textContent = '350 ms';
-        }
-      });
-    }
-  })();
-</script></main>
-
+<details class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
+  <summary class="cursor-pointer font-label-xs text-label-xs text-outline">Ver instrucciones enviadas al modelo</summary>
+  <pre id="prompt-preview" class="whitespace-pre-wrap font-label-xs text-label-xs text-on-surface-variant select-text"></pre>
+</details>
+</section>
+</div>
+</main>
 <script type="module" src="/src/settings.ts"></script>
 </body></html>
-

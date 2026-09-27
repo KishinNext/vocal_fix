@@ -1,91 +1,81 @@
 // whisper-node dynamically imported to avoid crashing if C++ compilation fails
 import { getLlama, LlamaChatSession, LlamaModel, LlamaContext, Llama } from 'node-llama-cpp'
 import path from 'path'
-import { fileURLToPath } from 'url'
 import fs from 'fs'
+import { getModelsDir, getSettings } from './settingsStore'
+import { buildSystemPrompt } from './prompt'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-const MODELS_DIR = path.join(__dirname, '../../models')
+const LLM_CONTEXT_SIZE = 4096;
 
 export class AIManager {
   private llama: Llama | null = null;
   private llamaModel: LlamaModel | null = null;
   private llamaContext: LlamaContext | null = null;
   private llamaSession: LlamaChatSession | null = null;
-  
-  private whisperModelPath: string;
-  private llamaModelPath: string;
-  private language: string;
-
-  constructor() {
-    this.whisperModelPath = path.join(MODELS_DIR, 'ggml-base.en.bin');
-    this.llamaModelPath = path.join(MODELS_DIR, 'tinyllama-1.1b-chat-v1.0.q4_k_m.gguf');
-    this.language = 'auto'; // Changed from 'es' to 'auto' to allow dynamic detection
-  }
-
-  public setWhisperModel(modelName: string) {
-    this.whisperModelPath = path.join(MODELS_DIR, modelName);
-  }
-
-  public setLanguage(lang: string) {
-    this.language = lang;
-  }
-
-  public async loadLlamaModel(modelName: string) {
-    this.llamaModelPath = path.join(MODELS_DIR, modelName);
-    await this.initLlama();
-  }
+  private loadedLlamaPath: string | null = null;
+  private loading: Promise<void> | null = null;
 
   public async init() {
-    if (!fs.existsSync(this.whisperModelPath)) {
-      console.warn(`Whisper model not found at ${this.whisperModelPath}`)
+    const whisperPath = path.join(getModelsDir(), getSettings().whisperModel);
+    if (!fs.existsSync(whisperPath)) {
+      console.warn(`Whisper model not found at ${whisperPath}`)
     }
-    await this.initLlama();
+    await this.ensureLlama();
   }
 
-  private async initLlama() {
-    if (!fs.existsSync(this.llamaModelPath)) {
-      console.warn(`LLAMA model not found at ${this.llamaModelPath}`);
+  // Loads the LLM selected in settings if it differs from the loaded one.
+  // Serialized so a model switch during a correction never loads twice.
+  public async ensureLlama(): Promise<void> {
+    while (this.loading) await this.loading;
+
+    const modelPath = path.join(getModelsDir(), getSettings().llmModel);
+    if (modelPath === this.loadedLlamaPath && this.llamaSession) return;
+
+    this.loading = this.loadLlama(modelPath).finally(() => { this.loading = null; });
+    await this.loading;
+  }
+
+  private async loadLlama(modelPath: string) {
+    await this.disposeLlama();
+
+    if (!fs.existsSync(modelPath)) {
+      console.warn(`LLAMA model not found at ${modelPath}`);
       return;
     }
-    
-    try {
-      if (!this.llama) this.llama = await getLlama();
-      
-      // Attempting to gracefully close previous context if we add model switching
-      if (this.llamaContext && typeof (this.llamaContext as any).dispose === 'function') {
-        (this.llamaContext as any).dispose();
-      }
-      if (this.llamaModel && typeof (this.llamaModel as any).dispose === 'function') {
-        (this.llamaModel as any).dispose();
-      }
 
-      this.llamaModel = await this.llama.loadModel({ modelPath: this.llamaModelPath });
-      this.llamaContext = await this.llamaModel.createContext();
-      this.llamaSession = new LlamaChatSession({
-        contextSequence: this.llamaContext.getSequence(),
-        systemPrompt: "You are an expert editor. Fix grammar and improve expression of the user's speech transcription without changing the meaning. Output only the corrected text."
-      });
-      console.log(`LLaMA initialized on Metal GPU with ${this.llamaModelPath}`);
-    } catch (e) {
-      console.error('Failed to init LLAMA', e);
-    }
+    if (!this.llama) this.llama = await getLlama();
+    this.llamaModel = await this.llama.loadModel({ modelPath });
+    // Fixed size keeps RAM predictable (the catalog's RAM estimates assume it); corrections are short.
+    this.llamaContext = await this.llamaModel.createContext({ contextSize: LLM_CONTEXT_SIZE });
+    this.llamaSession = new LlamaChatSession({ contextSequence: this.llamaContext.getSequence() });
+    this.loadedLlamaPath = modelPath;
+    console.log(`LLaMA initialized (${this.llama.gpu || 'cpu'}) with ${modelPath}`);
+  }
+
+  private async disposeLlama() {
+    this.llamaSession = null;
+    this.loadedLlamaPath = null;
+    await this.llamaContext?.dispose();
+    await this.llamaModel?.dispose();
+    this.llamaContext = null;
+    this.llamaModel = null;
   }
 
   public async transcribeAudio(wavFilePath: string): Promise<string> {
-    if (!fs.existsSync(this.whisperModelPath)) {
-      throw new Error(`Whisper model not downloaded at ${this.whisperModelPath}`);
+    const { whisperModel, language } = getSettings();
+    const whisperModelPath = path.join(getModelsDir(), whisperModel);
+    if (!fs.existsSync(whisperModelPath)) {
+      throw new Error(`Whisper model not downloaded at ${whisperModelPath}`);
     }
 
     try {
       const { whisper } = await import('whisper-node');
       const result = await whisper(wavFilePath, {
-        modelPath: this.whisperModelPath,
-        language: this.language,
+        modelPath: whisperModelPath,
+        // whisper-node only forwards flags nested in whisperOptions (-l <language>)
+        whisperOptions: { language },
       });
-      
+
       return result.map((r: any) => r.speech).join(' ').trim();
     } catch (e) {
       console.error('Whisper failed to load or transcribe, using fallback mock.', e);
@@ -94,11 +84,16 @@ export class AIManager {
   }
 
   public async fixGrammar(text: string): Promise<string> {
+    await this.ensureLlama();
     if (!this.llamaSession) {
-      throw new Error('LLaMA model not loaded');
+      throw new Error(`LLM model not downloaded: ${getSettings().llmModel}`);
     }
-    
-    const response = await this.llamaSession.prompt(text);
+
+    // Each correction is independent: reset history so the context never fills up
+    // and prompt/rule changes from Settings apply immediately.
+    const settings = getSettings();
+    this.llamaSession.setChatHistory([{ type: 'system', text: buildSystemPrompt(settings) }]);
+    const response = await this.llamaSession.prompt(text, { temperature: settings.temperature });
     return response.trim();
   }
 }
@@ -107,7 +102,11 @@ export const aiManager = new AIManager();
 
 // Compatibility exports
 export async function initAI() {
-  await aiManager.init();
+  try {
+    await aiManager.init();
+  } catch (e) {
+    console.error('Failed to init AI', e);
+  }
 }
 
 export async function transcribeAudio(wavFilePath: string): Promise<string> {

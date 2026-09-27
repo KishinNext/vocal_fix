@@ -4,6 +4,9 @@ import { join } from 'path'
 let win: BrowserWindow | null = null;
 let settingsWin: BrowserWindow | null = null;
 
+export function getSettingsWindow() { return settingsWin; }
+export function getMainWindow() { return win; }
+
 export function createWindow(preload: string, indexHtml: string) {
   win = new BrowserWindow({
     width: 1280,
