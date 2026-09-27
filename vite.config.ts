@@ -15,7 +15,20 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['node-llama-cpp', 'whisper-node']
+              external: ['node-llama-cpp']
+            }
+          }
+        }
+      },
+      {
+        // LLM runs in a utility process (see electron/ai.ts). Without onstart the plugin
+        // would launch a second Electron app for this entry.
+        entry: 'electron/llmWorker.ts',
+        onstart() {},
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ['node-llama-cpp']
             }
           }
         }

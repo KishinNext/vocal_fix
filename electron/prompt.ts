@@ -22,13 +22,15 @@ const PROFILE_INSTRUCTIONS: Record<Profile, string> = {
     "'actually' used to mean 'currently', 'sensible' used to mean 'sensitive').",
 }
 
-export function buildSystemPrompt(settings: AppSettings): string {
-  const lines = [
-    BASE_INSTRUCTION,
-    INTERVENTION_INSTRUCTIONS[settings.intervention],
-    PROFILE_INSTRUCTIONS[settings.profile],
-  ]
+// The grammar review is rendered as a word diff against what was said, so it must
+// keep the speaker's wording: only real errors should show up as changes.
+const GRAMMAR_INSTRUCTION =
+  'Only fix spelling, punctuation, capitalization and clear grammatical errors. ' +
+  "Keep the speaker's words and word order: do not rephrase, reorder, add or summarize."
 
+// Instructions shared by the grammar review and the natural expression
+function ruleInstructions(settings: AppSettings): string[] {
+  const lines: string[] = []
   if (settings.rules.removeFillers) {
     lines.push("Remove filler words and hesitations (e.g. 'eh', 'um', 'este', 'o sea', 'like', 'you know').")
   }
@@ -38,6 +40,19 @@ export function buildSystemPrompt(settings: AppSettings): string {
   if (settings.glossary.length > 0) {
     lines.push(`Keep these terms exactly as written: ${settings.glossary.join(', ')}.`)
   }
+  return lines
+}
 
-  return lines.join('\n')
+export function buildGrammarPrompt(settings: AppSettings): string {
+  return [BASE_INSTRUCTION, GRAMMAR_INSTRUCTION, ...ruleInstructions(settings)].join('\n')
+}
+
+// Natural expression: rewritten with the tone profile and intervention level from Settings
+export function buildSystemPrompt(settings: AppSettings): string {
+  return [
+    BASE_INSTRUCTION,
+    INTERVENTION_INSTRUCTIONS[settings.intervention],
+    PROFILE_INSTRUCTIONS[settings.profile],
+    ...ruleInstructions(settings),
+  ].join('\n')
 }

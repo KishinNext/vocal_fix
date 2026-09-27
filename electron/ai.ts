@@ -1,113 +1,81 @@
-// Both native libraries are imported lazily: node-llama-cpp takes ~3s to import and
-// would delay app startup; whisper-node runs side effects on import (see WHISPER_CPP_BINARY).
-import type { LlamaChatSession, LlamaModel, LlamaContext, Llama } from 'node-llama-cpp'
-import path from 'path'
+// Grammar review and natural expression. The model runs in a utility process
+// (llmWorker.ts) so loading it never blocks this process; speech-to-text lives in whisperServer.ts.
+import { utilityProcess, type UtilityProcess } from 'electron'
 import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import type { LlmRequest, LlmResponse } from './llmProtocol'
+import { buildGrammarPrompt, buildSystemPrompt } from './prompt'
 import { getModelsDir, getSettings } from './settingsStore'
-import { buildSystemPrompt } from './prompt'
-import { createRequire } from 'module'
 
-const WHISPER_CPP_BINARY = path.join(
-  path.dirname(createRequire(import.meta.url).resolve('whisper-node')), '../lib/whisper.cpp/main',
-);
+// Bundled next to main.js by vite-plugin-electron
+const WORKER_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'llmWorker.js')
+// The grammar review is a diff of what was said: keep it near-deterministic
+const GRAMMAR_TEMPERATURE = 0.1
 
-const LLM_CONTEXT_SIZE = 4096;
+type Request = LlmRequest extends infer R ? R extends unknown ? Omit<R, 'id'> : never : never
 
-export class AIManager {
-  private llama: Llama | null = null;
-  private llamaModel: LlamaModel | null = null;
-  private llamaContext: LlamaContext | null = null;
-  private llamaSession: LlamaChatSession | null = null;
-  private loadedLlamaPath: string | null = null;
-  private loading: Promise<void> | null = null;
+class AIManager {
+  private worker: UtilityProcess | null = null
+  private nextId = 0
+  private readonly pending = new Map<number, { resolve: (text: string) => void, reject: (e: Error) => void }>()
 
-  public async init() {
-    const whisperPath = path.join(getModelsDir(), getSettings().whisperModel);
-    if (!fs.existsSync(whisperPath)) {
-      console.warn(`Whisper model not found at ${whisperPath}`)
-    }
-    await this.ensureLlama();
+  // Loads (or switches to) the LLM selected in settings
+  async ensureLlama(): Promise<void> {
+    await this.request({ type: 'load', modelPath: this.modelPath() })
   }
 
-  // Loads the LLM selected in settings if it differs from the loaded one.
-  // Serialized so a model switch during a correction never loads twice.
-  public async ensureLlama(): Promise<void> {
-    while (this.loading) await this.loading;
-
-    const modelPath = path.join(getModelsDir(), getSettings().llmModel);
-    if (modelPath === this.loadedLlamaPath && this.llamaSession) return;
-
-    this.loading = this.loadLlama(modelPath).finally(() => { this.loading = null; });
-    await this.loading;
+  correctGrammar(text: string): Promise<string> {
+    return this.prompt(text, buildGrammarPrompt(getSettings()), GRAMMAR_TEMPERATURE)
   }
 
-  private async loadLlama(modelPath: string) {
-    await this.disposeLlama();
-
-    if (!fs.existsSync(modelPath)) {
-      console.warn(`LLAMA model not found at ${modelPath}`);
-      return;
-    }
-
-    const { getLlama, LlamaChatSession } = await import('node-llama-cpp');
-    if (!this.llama) this.llama = await getLlama();
-    this.llamaModel = await this.llama.loadModel({ modelPath });
-    // Fixed size keeps RAM predictable (the catalog's RAM estimates assume it); corrections are short.
-    this.llamaContext = await this.llamaModel.createContext({ contextSize: LLM_CONTEXT_SIZE });
-    this.llamaSession = new LlamaChatSession({ contextSequence: this.llamaContext.getSequence() });
-    this.loadedLlamaPath = modelPath;
-    console.log(`LLaMA initialized (${this.llama.gpu || 'cpu'}) with ${modelPath}`);
+  rewriteNatural(text: string): Promise<string> {
+    const settings = getSettings()
+    return this.prompt(text, buildSystemPrompt(settings), settings.temperature)
   }
 
-  private async disposeLlama() {
-    this.llamaSession = null;
-    this.loadedLlamaPath = null;
-    await this.llamaContext?.dispose();
-    await this.llamaModel?.dispose();
-    this.llamaContext = null;
-    this.llamaModel = null;
+  stop() {
+    this.worker?.kill()
+    this.worker = null
   }
 
-  public async transcribeAudio(wavFilePath: string): Promise<string> {
-    const { whisperModel, language } = getSettings();
-    const whisperModelPath = path.join(getModelsDir(), whisperModel);
-    if (!fs.existsSync(whisperModelPath)) {
-      throw new Error(`Whisper model not downloaded at ${whisperModelPath}`);
-    }
-
-    // Importing whisper-node without its binary runs `make` synchronously on the main
-    // thread (freezing the app) and calls process.exit(1) if that fails, so check first.
-    if (!fs.existsSync(WHISPER_CPP_BINARY)) {
-      throw new Error(
-        'whisper.cpp no está compilado. Ejecuta `npm run whisper:build`',
-      );
-    }
-
-    const { whisper } = await import('whisper-node');
-    const result = await whisper(wavFilePath, {
-      modelPath: whisperModelPath,
-      // whisper-node only forwards flags nested in whisperOptions (-l <language>)
-      whisperOptions: { language },
-    });
-    // whisper-node logs and swallows whisper.cpp failures, returning undefined
-    if (!result) throw new Error('Whisper no pudo transcribir el audio');
-
-    return result.map(r => r.speech).join(' ').trim();
+  private prompt(text: string, systemPrompt: string, temperature: number) {
+    return this.request({ type: 'prompt', modelPath: this.modelPath(), systemPrompt, text, temperature })
   }
 
-  public async fixGrammar(text: string): Promise<string> {
-    await this.ensureLlama();
-    if (!this.llamaSession) {
-      throw new Error(`LLM model not downloaded: ${getSettings().llmModel}`);
-    }
+  private modelPath() {
+    return path.join(getModelsDir(), getSettings().llmModel)
+  }
 
-    // Each correction is independent: reset history so the context never fills up
-    // and prompt/rule changes from Settings apply immediately.
-    const settings = getSettings();
-    this.llamaSession.setChatHistory([{ type: 'system', text: buildSystemPrompt(settings) }]);
-    const response = await this.llamaSession.prompt(text, { temperature: settings.temperature });
-    return response.trim();
+  private request(request: Request): Promise<string> {
+    if (!fs.existsSync(request.modelPath)) {
+      return Promise.reject(new Error(`Modelo de lenguaje no descargado: ${path.basename(request.modelPath)}`))
+    }
+    const id = ++this.nextId
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject })
+      this.spawn().postMessage({ ...request, id } as LlmRequest)
+    })
+  }
+
+  private spawn(): UtilityProcess {
+    if (this.worker) return this.worker
+    const worker = utilityProcess.fork(WORKER_PATH, [], { serviceName: 'VocalFix LLM', stdio: 'inherit' })
+    worker.on('message', ({ id, result, error }: LlmResponse) => {
+      const request = this.pending.get(id)
+      this.pending.delete(id)
+      if (error !== undefined) request?.reject(new Error(error))
+      else request?.resolve(result ?? '')
+    })
+    worker.on('exit', code => {
+      if (this.worker === worker) this.worker = null
+      // A crash (e.g. out of memory) fails what was in flight; the next request restarts it
+      for (const request of this.pending.values()) request.reject(new Error(`El proceso del LLM terminó (código ${code})`))
+      this.pending.clear()
+    })
+    this.worker = worker
+    return worker
   }
 }
 
-export const aiManager = new AIManager();
+export const aiManager = new AIManager()
