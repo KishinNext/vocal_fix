@@ -199,7 +199,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="corner-down-left" aria-hidden="true" class="lucide lucide-corner-down-left w-3.5 h-3.5 text-zinc-400"><path d="M20 4v7a4 4 0 0 1-4 4H4"></path><path d="m9 10-5 5 5 5"></path></svg>
 </button>
 </div>
-<button class="px-3.5 py-1.5 rounded-md bg-zinc-200 hover:bg-white text-zinc-900 font-medium text-xs flex items-center gap-1.5 transition active:scale-95" id="copyBtn" onclick="copyCurrentSuggestion()">
+<button class="px-3.5 py-1.5 rounded-md bg-zinc-200 hover:bg-white text-zinc-900 font-medium text-xs flex items-center gap-1.5 transition active:scale-95" id="copyBtn">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" aria-hidden="true" class="lucide lucide-copy w-3.5 h-3.5 text-zinc-800"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
 <span id="copyBtnText" class="">Copiar</span>
 </button>
@@ -233,7 +233,7 @@
 </div>
 <!-- Center: Main Recording Studio Button -->
 <div class="flex items-center gap-2.5">
-<button class="px-5 py-2 rounded-full bg-studio-card hover:bg-studio-elevated border border-studio-border text-zinc-200 text-xs font-medium flex items-center gap-2.5 transition active:scale-95 shadow-sm" id="recordToggleBtn">
+<button class="px-5 py-2 rounded-full bg-studio-card hover:bg-studio-elevated border border-studio-border text-zinc-200 text-xs font-medium flex items-center gap-2.5 transition active:scale-95 shadow-sm" id="recordToggleBtn" data-state="idle">
           <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
           <span class="text-xs text-zinc-400 font-medium tracking-wide">En pausa</span>
           <span class="text-[10px] font-mono text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-studio-border">Espacio</span>

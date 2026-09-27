@@ -1,7 +1,7 @@
 import type { ModelKind } from '../../electron/modelCatalog'
 import { DEFAULT_TEMPERATURE, type AppSettings, type Intervention } from '../../electron/settingsSchema'
 import type { ModelCatalogResponse, ModelStatus } from '../global'
-import { errorMessage, escapeHtml, formatBytes, memoryFit, showStatus, type MemoryFit } from './shared'
+import { byId, errorMessage, escapeHtml, formatBytes, memoryFit, showStatus, type MemoryFit } from './shared'
 
 const INTERVENTION_ACTIVE = 'bg-surface-container-high text-primary'
 const INTERVENTION_IDLE = 'bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -9,10 +9,6 @@ const INTERVENTION_IDLE = 'bg-surface-container text-on-surface-variant hover:te
 let catalog: ModelCatalogResponse | null = null
 let settings: AppSettings | null = null
 const busyFiles = new Set<string>()
-
-function byId<T extends HTMLElement>(id: string): T | null {
-  return document.getElementById(id) as T | null
-}
 
 function modelLabel(model: ModelStatus): string {
   return model.englishOnly && model.kind === 'whisper' ? `${model.name} (EN)` : model.name

@@ -1,12 +1,8 @@
 import { acceleratorToLabels, eventToAccelerator } from './accelerator'
-import { errorMessage, escapeHtml, showStatus } from './shared'
+import { byId, errorMessage, escapeHtml, showStatus } from './shared'
 
 let currentShortcut = ''
 let capturing = false
-
-function byId<T extends HTMLElement>(id: string): T | null {
-  return document.getElementById(id) as T | null
-}
 
 function renderKeys(accelerator: string) {
   const keys = byId('record-shortcut-keys')

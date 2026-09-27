@@ -9,6 +9,10 @@ export const SETTINGS_SECTIONS = [
 const ACTIVE_ITEM = 'bg-surface-container-high text-on-surface shadow-sm'
 const IDLE_ITEM = 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors'
 
+export function byId<T extends HTMLElement>(id: string): T | null {
+  return document.getElementById(id) as T | null
+}
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')

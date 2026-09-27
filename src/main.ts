@@ -1,195 +1,116 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
-import { modelDisplayName } from '../electron/modelCatalog'
 import { initToneTabs } from './tone-tabs'
+import {
+  PLACEHOLDER, appendLine, fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton,
+} from './editor'
+
+const COPY_FEEDBACK_MS = 1800
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
+  const api = window.electronAPI
+  if (!api) return
 
-  // Load available models
-  window.electronAPI?.getModels?.().then((models) => {
-    const sttSelect = document.getElementById('stt-model-select') as HTMLSelectElement;
-    const llmSelect = document.getElementById('llm-model-select') as HTMLSelectElement;
-    
-    if (sttSelect) {
-      sttSelect.innerHTML = '';
-      if (models.whisper.length === 0) {
-        sttSelect.innerHTML = '<option value="">No model found</option>';
-        sttSelect.disabled = true;
-      } else {
-        models.whisper.forEach(m => {
-          const option = new Option(modelDisplayName(m), m);
-          option.className = 'bg-studio-surface text-studio-heading';
-          sttSelect.add(option);
-        });
-      }
-    }
-    
-    if (llmSelect) {
-      llmSelect.innerHTML = '';
-      if (models.llama.length === 0) {
-        llmSelect.innerHTML = '<option value="">No model found</option>';
-        llmSelect.disabled = true;
-      } else {
-        models.llama.forEach(m => {
-          const option = new Option(modelDisplayName(m), m);
-          option.className = 'bg-studio-surface text-studio-heading';
-          llmSelect.add(option);
-        });
-      }
-    }
-  });
+  const transcriptionEl = document.getElementById('live-transcription')
+  const reviewEl = document.getElementById('grammar-review-container')
+  const primaryRecEl = document.getElementById('primary-recommendation')
+  const recordBtn = document.getElementById('recordToggleBtn')
+  const sttSelect = document.getElementById('stt-model-select') as HTMLSelectElement | null
+  const llmSelect = document.getElementById('llm-model-select') as HTMLSelectElement | null
+  const micSelect = document.getElementById('mic-select') as HTMLSelectElement | null
 
-  const recordBtn = document.getElementById('recordToggleBtn');
-  let isListening = false;
-  const audioRecorder = new AudioRecorder();
+  api.getModels().then(models => {
+    if (sttSelect) fillModelSelect(sttSelect, models.whisper)
+    if (llmSelect) fillModelSelect(llmSelect, models.llama)
+  })
 
-  // Populate microphone list
-  const micSelect = document.getElementById('mic-select') as HTMLSelectElement;
+  const audioRecorder = new AudioRecorder()
   if (micSelect) {
-    audioRecorder.getMicrophones().then(devices => {
-      micSelect.innerHTML = '<option value="">Predeterminado</option>';
-      devices.forEach(device => {
-        const option = document.createElement('option');
-        option.value = device.deviceId;
-        option.text = device.label || `Micrófono ${micSelect.length}`;
-        option.className = 'bg-studio-surface text-studio-heading';
-        micSelect.appendChild(option);
-      });
-    });
-
-    micSelect.addEventListener('change', (e) => {
-      const target = e.target as HTMLSelectElement;
-      audioRecorder.setMicrophone(target.value);
-    });
+    audioRecorder.getMicrophones().then(devices => fillMicrophoneSelect(micSelect, devices))
+    micSelect.addEventListener('change', () => audioRecorder.setMicrophone(micSelect.value))
   }
 
-  // AI Result Handlers
-  let lastTranscription = '';
+  // ── Recording ──
+  const setIdle = () => { if (recordBtn) renderRecordButton(recordBtn, 'idle') }
 
-  window.electronAPI?.onTranscription((text: string) => {
-    lastTranscription = text;
-    // Show original transcribed text
-    const editorEl = document.getElementById('live-transcription')
-    if (editorEl) {
-      if (editorEl.innerText.includes('Esperando voz...')) {
-        editorEl.innerHTML = '';
-      }
-      editorEl.innerHTML += `<p class="text-on-surface/50 italic mb-2">🎤 ${text}</p>`
+  recordBtn?.addEventListener('click', async () => {
+    const state = recordBtn.dataset.state ?? 'idle'
+    if (state === 'processing') return
+
+    if (state === 'idle') {
+      renderRecordButton(recordBtn, 'listening')
+      await audioRecorder.startRecording(pcmData => api.sendAudioChunk(pcmData))
+    } else {
+      // Stays "processing" until the pipeline answers (result or error)
+      renderRecordButton(recordBtn, 'processing')
+      audioRecorder.stopRecording()
+      api.sendAudioStop()
     }
   })
 
-  window.electronAPI?.onCorrection((text: string) => {
-    // Show corrected text
-    const editorEl = document.getElementById('grammar-review-container')
-    if (editorEl) {
-      if (editorEl.innerText.includes('Esperando voz...')) {
-        editorEl.innerHTML = '';
-      }
-      editorEl.innerHTML += `<p class="mb-4 text-zinc-300">✨ ${text}</p>`
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !isTypingTarget(e.target)) {
+      e.preventDefault()
+      recordBtn?.click()
     }
+  })
 
-    const primaryRecEl = document.getElementById('primary-recommendation')
-    if (primaryRecEl) {
-      primaryRecEl.innerText = text;
-    }
+  // Global shortcut (configured in Settings > Atajos) arrives from the main process
+  api.onToggleRecording(() => recordBtn?.click())
+
+  // ── Pipeline results ──
+  let lastTranscription = ''
+
+  api.onTranscription(text => {
+    lastTranscription = text
+    if (transcriptionEl) appendLine(transcriptionEl, `🎤 ${text}`, 'text-on-surface/50 italic mb-2')
+    if (!text) setIdle() // nothing to correct, so no correction event will follow
+  })
+
+  api.onCorrection(text => {
+    if (reviewEl) appendLine(reviewEl, `✨ ${text}`, 'mb-4 text-zinc-300')
+    if (primaryRecEl) primaryRecEl.innerText = text
+    setIdle()
   })
 
   // Pipeline failures (missing model, whisper.cpp not built...) used to be swallowed
-  window.electronAPI?.onAiError((message: string) => {
-    const editorEl = document.getElementById('live-transcription')
-    if (!editorEl) return
-    if (editorEl.innerText.includes('Esperando voz...')) editorEl.innerHTML = '';
-    const errorEl = document.createElement('p');
-    errorEl.className = 'text-sm text-rose-400 mb-2';
-    errorEl.textContent = `⚠ ${message}`;
-    editorEl.appendChild(errorEl);
+  api.onAiError(message => {
+    if (transcriptionEl) appendLine(transcriptionEl, `⚠ ${message}`, 'text-sm text-rose-400 mb-2')
+    setIdle()
   })
 
-  if (recordBtn) {
-    recordBtn.addEventListener('click', async () => {
-      isListening = !isListening;
-      if (isListening) {
-        recordBtn.innerHTML = `
-          <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-          <span class="text-xs text-studio-heading font-medium tracking-wide">Escuchando</span>
-          <span class="text-[10px] font-mono text-zinc-400 bg-white/[0.06] px-1.5 py-0.5 rounded border border-studio-border">Espacio</span>
-        `;
-        
-        await audioRecorder.startRecording((pcmData) => {
-          // Send PCM data to backend for Whisper transcription
-          window.electronAPI?.sendAudioChunk(pcmData);
-        });
-
-      } else {
-        recordBtn.innerHTML = `
-          <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
-          <span class="text-xs text-zinc-400 font-medium tracking-wide">Procesando AI...</span>
-          <span class="text-[10px] font-mono text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-studio-border">Espacio</span>
-        `;
-        
-        audioRecorder.stopRecording();
-        window.electronAPI?.sendAudioStop();
-        
-        setTimeout(() => {
-          recordBtn.innerHTML = `
-            <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
-            <span class="text-xs text-zinc-400 font-medium tracking-wide">En pausa</span>
-            <span class="text-[10px] font-mono text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded border border-studio-border">Espacio</span>
-          `;
-        }, 3000);
-      }
-    });
-  }
-
-  // Global shortcut (configured in Settings > Atajos) arrives from the main process
-  window.electronAPI?.onToggleRecording?.(() => recordBtn?.click());
-
-  // Tone tabs switch the correction profile and re-correct the last dictation
-  const toneTabs = document.getElementById('tone-tabs');
-  if (toneTabs && window.electronAPI) {
-    const primaryRecEl = document.getElementById('primary-recommendation');
-    let previousText = '';
+  // ── Tone tabs: switch the correction profile and re-correct the last dictation ──
+  const toneTabs = document.getElementById('tone-tabs')
+  if (toneTabs) {
+    let previousText = ''
     initToneTabs(toneTabs, {
       getText: () => lastTranscription,
       onPending: () => {
-        if (!primaryRecEl) return;
-        previousText = primaryRecEl.innerText;
-        primaryRecEl.innerText = 'Reescribiendo…';
+        if (!primaryRecEl) return
+        previousText = primaryRecEl.innerText
+        primaryRecEl.innerText = 'Reescribiendo…'
       },
-      onResult: (corrected) => {
-        if (primaryRecEl) primaryRecEl.innerText = corrected;
+      onResult: corrected => {
+        if (primaryRecEl) primaryRecEl.innerText = corrected
       },
-      onError: (message) => {
-        console.error('Tone rewrite failed:', message);
-        if (primaryRecEl && previousText) primaryRecEl.innerText = previousText;
+      onError: message => {
+        console.error('Tone rewrite failed:', message)
+        if (primaryRecEl && previousText) primaryRecEl.innerText = previousText
       },
-    });
+    })
   }
 
-  window.addEventListener('keydown', (e) => {
-    const targetTag = (e.target as HTMLElement).tagName;
-    const isInput = targetTag === 'INPUT' || targetTag === 'TEXTAREA' || targetTag === 'SELECT';
-    if (e.code === 'Space' && !isInput) {
-      e.preventDefault();
-      recordBtn?.click();
-    }
-  });
+  // ── Copy ──
+  document.getElementById('copyBtn')?.addEventListener('click', async () => {
+    const text = primaryRecEl?.innerText ?? ''
+    if (!text || text.includes(PLACEHOLDER)) return
 
-  window.copyCurrentSuggestion = () => {
-    const primaryRecEl = document.getElementById('primary-recommendation');
-    const textToCopy = primaryRecEl ? primaryRecEl.innerText : "";
-    if (!textToCopy || textToCopy.includes('Esperando voz...')) return;
-
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      const copyText = document.getElementById('copyBtnText');
-      if (copyText) {
-        const original = copyText.innerText;
-        copyText.innerText = "Copiado";
-        setTimeout(() => {
-          copyText.innerText = original;
-        }, 1800);
-      }
-    });
-  }
+    await navigator.clipboard.writeText(text)
+    const label = document.getElementById('copyBtnText')
+    if (!label) return
+    const original = label.innerText
+    label.innerText = 'Copiado'
+    setTimeout(() => { label.innerText = original }, COPY_FEEDBACK_MS)
+  })
 })

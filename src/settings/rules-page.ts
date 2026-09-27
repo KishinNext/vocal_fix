@@ -1,11 +1,7 @@
 import type { AppSettings, GrammarRules, Profile } from '../../electron/settingsSchema'
-import { errorMessage, escapeHtml, showStatus } from './shared'
+import { byId, errorMessage, escapeHtml, showStatus } from './shared'
 
 let settings: AppSettings | null = null
-
-function byId<T extends HTMLElement>(id: string): T | null {
-  return document.getElementById(id) as T | null
-}
 
 function renderProfiles() {
   document.querySelectorAll<HTMLButtonElement>('[data-profile]').forEach(card => {

@@ -42,6 +42,5 @@ declare global {
       onCorrection: (callback: (text: string) => void) => () => void;
       onAiError: (callback: (error: string) => void) => () => void;
     };
-    copyCurrentSuggestion: () => void;
   }
 }
