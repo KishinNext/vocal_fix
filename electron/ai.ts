@@ -79,7 +79,7 @@ export class AIManager {
     // thread (freezing the app) and calls process.exit(1) if that fails, so check first.
     if (!fs.existsSync(WHISPER_CPP_BINARY)) {
       throw new Error(
-        'whisper.cpp no está compilado. Ejecuta `make main` en node_modules/whisper-node/lib/whisper.cpp',
+        'whisper.cpp no está compilado. Ejecuta `npm run whisper:build`',
       );
     }
 

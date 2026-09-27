@@ -19,6 +19,7 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
 1. **Install Dependencies:**
    ```bash
    npm install
+   npm run whisper:build   # compiles whisper.cpp (needs Xcode or the Command Line Tools)
    ```
 
 2. **Run the App:**
