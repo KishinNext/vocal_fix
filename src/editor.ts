@@ -12,7 +12,8 @@ function createOption(text: string, value: string, className = ''): HTMLOptionEl
   return option
 }
 
-export function fillModelSelect(select: HTMLSelectElement, files: string[]) {
+// `active` is the model saved in Settings; it is shown selected
+export function fillModelSelect(select: HTMLSelectElement, files: string[], active = '') {
   select.innerHTML = ''
   select.disabled = files.length === 0
   if (files.length === 0) {
@@ -20,6 +21,29 @@ export function fillModelSelect(select: HTMLSelectElement, files: string[]) {
     return
   }
   files.forEach(file => select.add(createOption(modelDisplayName(file), file, OPTION_CLASS)))
+  if (files.includes(active)) select.value = active
+}
+
+// Activates (and saves) the model chosen in the dropdown; on failure the previous one is shown again
+export function bindModelSelect(
+  select: HTMLSelectElement,
+  activate: (file: string) => Promise<unknown>,
+  onError: (message: string) => void,
+) {
+  let active = select.value
+  select.addEventListener('change', async () => {
+    const chosen = select.value
+    select.disabled = true // loading an LLM takes a few seconds
+    try {
+      await activate(chosen)
+      active = chosen
+    } catch (e) {
+      select.value = active
+      onError(e instanceof Error ? e.message : String(e))
+    } finally {
+      select.disabled = false
+    }
+  })
 }
 
 export function fillMicrophoneSelect(select: HTMLSelectElement, devices: MediaDeviceInfo[]) {

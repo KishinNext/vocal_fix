@@ -4,7 +4,7 @@ import { initToneTabs } from './tone-tabs'
 import { Speaker } from './speech'
 import { TranscriptView } from './transcript-view'
 import {
-  fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton, type RecordState,
+  bindModelSelect, fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton, type RecordState,
 } from './editor'
 
 const COPY_FEEDBACK_MS = 1800
@@ -22,9 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const llmSelect = document.getElementById('llm-model-select') as HTMLSelectElement | null
   const micSelect = document.getElementById('mic-select') as HTMLSelectElement | null
 
-  api.getModels().then(models => {
-    if (sttSelect) fillModelSelect(sttSelect, models.whisper)
-    if (llmSelect) fillModelSelect(llmSelect, models.llama)
+  // Model dropdowns show and change the models saved in Settings
+  Promise.all([api.getModels(), api.getSettings()]).then(([models, settings]) => {
+    const showError = (message: string) => view?.error(message)
+    if (sttSelect) {
+      fillModelSelect(sttSelect, models.whisper, settings.whisperModel)
+      bindModelSelect(sttSelect, file => api.activateModel('whisper', file), showError)
+    }
+    if (llmSelect) {
+      fillModelSelect(llmSelect, models.llama, settings.llmModel)
+      bindModelSelect(llmSelect, file => api.activateModel('llm', file), showError)
+    }
   })
 
   const audioRecorder = new AudioRecorder()

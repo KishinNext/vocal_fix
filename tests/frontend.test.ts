@@ -181,6 +181,56 @@ describe('fillModelSelect()', () => {
     fillModelSelect(select, ['ggml-small.bin'])
     expect(select.options).toHaveLength(1)
   })
+  it('selects the model saved in Settings', async () => {
+    const { fillModelSelect } = await import('../src/editor')
+    const select = createEl('select')
+    fillModelSelect(select, ['ggml-base.bin', 'ggml-small.en.bin'], 'ggml-small.en.bin')
+    expect(select.value).toBe('ggml-small.en.bin')
+  })
+
+  it('keeps the first file when the saved model is not in the list', async () => {
+    const { fillModelSelect } = await import('../src/editor')
+    const select = createEl('select')
+    fillModelSelect(select, ['ggml-base.bin', 'ggml-small.bin'], 'deleted.bin')
+    expect(select.value).toBe('ggml-base.bin')
+  })
+})
+
+describe('bindModelSelect()', () => {
+  beforeEach(cleanDOM)
+
+  async function mount() {
+    const { fillModelSelect, bindModelSelect } = await import('../src/editor')
+    const select = createEl('select')
+    fillModelSelect(select, ['a.gguf', 'b.gguf'], 'a.gguf')
+    return { select, bindModelSelect }
+  }
+
+  const choose = (select: HTMLSelectElement, value: string) => {
+    select.value = value
+    select.dispatchEvent(new Event('change'))
+  }
+
+  it('activates the chosen model', async () => {
+    const { select, bindModelSelect } = await mount()
+    const activate = vi.fn().mockResolvedValue(undefined)
+    bindModelSelect(select, activate, vi.fn())
+    choose(select, 'b.gguf')
+    expect(select.disabled).toBe(true)
+    await vi.waitFor(() => expect(select.disabled).toBe(false))
+    expect(activate).toHaveBeenCalledWith('b.gguf')
+    expect(select.value).toBe('b.gguf')
+  })
+
+  it('goes back to the previous model and reports the error when activation fails', async () => {
+    const { select, bindModelSelect } = await mount()
+    const onError = vi.fn()
+    bindModelSelect(select, vi.fn().mockRejectedValue(new Error('El modelo no está descargado: b.gguf')), onError)
+    choose(select, 'b.gguf')
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('El modelo no está descargado: b.gguf'))
+    expect(select.value).toBe('a.gguf')
+    expect(select.disabled).toBe(false)
+  })
 })
 
 describe('fillMicrophoneSelect()', () => {
