@@ -69,7 +69,6 @@
 <!-- Left: Native macOS Window Controls & Title -->
 <div class="flex items-center gap-4">
 <div class="flex items-center gap-2.5 -translate-y-px">
-<span class="font-display font-medium text-sm tracking-tight text-studio-heading">VocalFix</span>
 
 </div>
 </div>
@@ -79,7 +78,7 @@
 <div class="relative flex items-center bg-studio-surface border border-studio-border rounded-md px-2.5 py-1 text-xs text-studio-subtle hover:border-white/20 transition group">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="mic" aria-hidden="true" class="lucide lucide-mic w-3.5 h-3.5 mr-1.5 text-zinc-400"><path d="M12 19v3"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><rect x="9" y="2" width="6" height="13" rx="3"></rect></svg>
 <span class="text-zinc-500 mr-1 font-normal">STT:</span>
-<select id="stt-model-select" class="bg-transparent text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
+<select id="stt-model-select" class="bg-transparent bg-none text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
 <option class="bg-studio-surface text-studio-heading" value="">Cargando...</option>
 </select>
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-zinc-500 ml-1 pointer-events-none"><path d="m6 9 6 6 6-6"></path></svg>
@@ -88,7 +87,7 @@
 <div class="relative flex items-center bg-studio-surface border border-studio-border rounded-md px-2.5 py-1 text-xs text-studio-subtle hover:border-white/20 transition group">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="cpu" aria-hidden="true" class="lucide lucide-cpu w-3.5 h-3.5 mr-1.5 text-zinc-400"><path d="M12 20v2"></path><path d="M12 2v2"></path><path d="M17 20v2"></path><path d="M17 2v2"></path><path d="M2 12h2"></path><path d="M2 17h2"></path><path d="M2 7h2"></path><path d="M20 12h2"></path><path d="M20 17h2"></path><path d="M20 7h2"></path><path d="M7 20v2"></path><path d="M7 2v2"></path><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>
 <span class="text-zinc-500 mr-1 font-normal">Modelo:</span>
-<select id="llm-model-select" class="bg-transparent text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
+<select id="llm-model-select" class="bg-transparent bg-none text-xs text-studio-heading border-none p-0 pr-4 focus:ring-0 cursor-pointer font-normal appearance-none">
 <option class="bg-studio-surface text-studio-heading" value="">Cargando...</option>
 </select>
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-zinc-500 ml-1 pointer-events-none"><path d="m6 9 6 6 6-6"></path></svg>
@@ -96,12 +95,6 @@
 </div>
 <!-- Right: Telemetry & Studio Preferences -->
 <div class="flex items-center gap-3" style="-webkit-app-region: no-drag;">
-<div class="hidden md:flex items-center gap-2 text-[11px] text-zinc-400 font-normal">
-<span class="">GPU acelerada</span>
-<span class="text-zinc-600">·</span>
-<span class="" id="gpu-memory">2.1 GB</span>
-</div>
-<div class="h-3.5 w-px bg-studio-border hidden md:block"></div>
 
 <div style="-webkit-app-region: no-drag;" class="flex items-center justify-center">
 <button id="btn-settings" style="-webkit-app-region: no-drag;" class="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition cursor-pointer relative z-50" title="Preferencias">
@@ -178,16 +171,10 @@
 
 </div>
 <!-- Tone Switcher Tabs (Editorial Style) -->
-<div class="flex items-center p-0.5 bg-studio-card rounded-lg border border-studio-border mb-4">
-<button class="flex-1 py-1 text-xs text-studio-heading font-medium bg-studio-elevated rounded shadow-xs border border-white/[0.06] transition text-center">
-          Natural
-        </button>
-<button class="flex-1 py-1 text-xs text-zinc-400 hover:text-zinc-200 transition text-center">
-          Profesional
-        </button>
-<button class="flex-1 py-1 text-xs text-zinc-400 hover:text-zinc-200 transition text-center">
-          Conciso
-        </button>
+<div id="tone-tabs" role="tablist" class="flex items-center p-0.5 bg-studio-card rounded-lg border border-studio-border mb-4">
+<button type="button" role="tab" data-tone="conversational" class="flex-1 py-1 text-xs rounded border border-transparent transition text-center text-zinc-400 hover:text-zinc-200">Natural</button>
+<button type="button" role="tab" data-tone="business" class="flex-1 py-1 text-xs rounded border border-transparent transition text-center text-zinc-400 hover:text-zinc-200">Profesional</button>
+<button type="button" role="tab" data-tone="concise" class="flex-1 py-1 text-xs rounded border border-transparent transition text-center text-zinc-400 hover:text-zinc-200">Conciso</button>
 </div>
 <!-- Suggestion Viewport -->
 <div class="flex-1 flex flex-col justify-between overflow-y-auto pr-1 space-y-4">
@@ -257,14 +244,7 @@
 </div>
 <!-- Right: Options & Subtle Shortcuts -->
 <div class="flex items-center gap-4 text-xs text-zinc-400">
-<label class="flex items-center gap-2 cursor-pointer">
-<div class="relative inline-flex items-center cursor-pointer">
-<input checked="" class="sr-only peer" type="checkbox">
-<div class="w-8 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-zinc-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-zinc-400"></div>
-</div>
-<span class="text-xs text-zinc-300 select-none">Auto-revisión</span>
-</label>
-<div class="h-3.5 w-px bg-studio-border"></div>
+
 <div class="hidden xl:flex items-center gap-1.5 text-zinc-400">
 <kbd class="px-1.5 py-0.5 rounded bg-studio-surface border border-studio-border text-[10px] font-mono text-zinc-300">⌥ Espacio</kbd>
 <span class="">Superposición rápida</span>

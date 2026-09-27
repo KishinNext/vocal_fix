@@ -1,5 +1,7 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
+import { modelDisplayName } from '../electron/modelCatalog'
+import { initToneTabs } from './tone-tabs'
 
 // @ts-nocheck
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sttSelect.disabled = true;
       } else {
         models.whisper.forEach(m => {
-          sttSelect.innerHTML += `<option class="bg-studio-surface text-studio-heading" value="${m}">${m}</option>`;
+          const option = new Option(modelDisplayName(m), m);
+          option.className = 'bg-studio-surface text-studio-heading';
+          sttSelect.add(option);
         });
       }
     }
@@ -42,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
         llmSelect.disabled = true;
       } else {
         models.llama.forEach(m => {
-          llmSelect.innerHTML += `<option class="bg-studio-surface text-studio-heading" value="${m}">${m}</option>`;
+          const option = new Option(modelDisplayName(m), m);
+          option.className = 'bg-studio-surface text-studio-heading';
+          llmSelect.add(option);
         });
       }
     }
@@ -74,7 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // AI Result Handlers
+  let lastTranscription = '';
+
   window.electronAPI?.onTranscription((text: string) => {
+    lastTranscription = text;
     // Show original transcribed text
     const editorEl = document.getElementById('live-transcription')
     if (editorEl) {
@@ -100,13 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
       primaryRecEl.innerText = text;
     }
   })
-
-  window.electronAPI?.onMemoryStats?.((memoryGB: string) => {
-    const memEl = document.getElementById('gpu-memory');
-    if (memEl) {
-      memEl.innerText = memoryGB;
-    }
-  });
 
   if (recordBtn) {
     recordBtn.addEventListener('click', async () => {
@@ -141,6 +143,31 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
         }, 3000);
       }
+    });
+  }
+
+  // Global shortcut (configured in Settings > Atajos) arrives from the main process
+  window.electronAPI?.onToggleRecording?.(() => recordBtn?.click());
+
+  // Tone tabs switch the correction profile and re-correct the last dictation
+  const toneTabs = document.getElementById('tone-tabs');
+  if (toneTabs && window.electronAPI) {
+    const primaryRecEl = document.getElementById('primary-recommendation');
+    let previousText = '';
+    initToneTabs(toneTabs, {
+      getText: () => lastTranscription,
+      onPending: () => {
+        if (!primaryRecEl) return;
+        previousText = primaryRecEl.innerText;
+        primaryRecEl.innerText = 'Reescribiendo…';
+      },
+      onResult: (corrected) => {
+        if (primaryRecEl) primaryRecEl.innerText = corrected;
+      },
+      onError: (message) => {
+        console.error('Tone rewrite failed:', message);
+        if (primaryRecEl && previousText) primaryRecEl.innerText = previousText;
+      },
     });
   }
 
