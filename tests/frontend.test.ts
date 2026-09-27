@@ -101,34 +101,6 @@ describe('initNavigation()', () => {
     assignSpy.mockRestore()
   })
 
-  it('navigates to /pages/almacenamiento-privacidad.html', async () => {
-    const { initNavigation } = await import('../src/navigation')
-    const btn = createEl('button')
-    btn.setAttribute('data-path', 'almacenamiento-privacidad')
-    document.body.appendChild(btn)
-
-    initNavigation()
-
-    const assignSpy = vi.spyOn(window.location, 'href', 'set')
-    btn.click()
-    expect(assignSpy).toHaveBeenCalledWith('/pages/almacenamiento-privacidad.html')
-    assignSpy.mockRestore()
-  })
-
-  it('navigates to /pages/rendimiento-hardware.html', async () => {
-    const { initNavigation } = await import('../src/navigation')
-    const btn = createEl('button')
-    btn.setAttribute('data-path', 'rendimiento-hardware')
-    document.body.appendChild(btn)
-
-    initNavigation()
-
-    const assignSpy = vi.spyOn(window.location, 'href', 'set')
-    btn.click()
-    expect(assignSpy).toHaveBeenCalledWith('/pages/rendimiento-hardware.html')
-    assignSpy.mockRestore()
-  })
-
   it('does not navigate for unknown data-path (logs to console)', async () => {
     const { initNavigation } = await import('../src/navigation')
     const btn = createEl('button')
@@ -538,8 +510,6 @@ describe('Settings pages structure', () => {
     'pages/settings.html',
     'pages/atajos-teclado-hotkeys.html',
     'pages/reglas-gramaticales-estilo.html',
-    'pages/almacenamiento-privacidad.html',
-    'pages/rendimiento-hardware.html',
   ]
 
   pages.forEach(page => {
@@ -566,6 +536,15 @@ describe('Settings pages structure', () => {
         'utf-8',
       )
       expect(content).not.toMatch(/<footer[\s>]/)
+    })
+
+    it(`${page} uses the shared sidebar and declares its page id`, () => {
+      const content = readFileSync(
+        `./${page}`,
+        'utf-8',
+      )
+      expect(content).toContain('id="settings-nav"')
+      expect(content).toMatch(/<body[^>]*data-page="(models|rules|shortcuts)"/)
     })
   })
 })
