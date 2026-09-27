@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
-import { createSettingsWindow, getMainWindow, getSettingsWindow } from './windows'
+import { getMainWindow } from './windows'
 import { saveWavFile } from './audioService'
 import { transcribeAudio, fixGrammar, aiManager } from './ai'
 import { getModelsDir, getSettings, updateSettings } from './settingsStore'
@@ -70,12 +70,7 @@ export function registerRecordShortcut() {
   }
 }
 
-export function registerIpcHandlers(preload: string, settingsHtml: string) {
-  ipcMain.on('open-settings', () => {
-    console.log('[IPC] open-settings received — creating settings window')
-    createSettingsWindow(preload, settingsHtml)
-  })
-
+export function registerIpcHandlers() {
   ipcMain.handle('get-models', async () => {
     try {
       const files = listModelFiles(getModelsDir());
@@ -86,12 +81,8 @@ export function registerIpcHandlers(preload: string, settingsHtml: string) {
     }
   });
 
-  ipcMain.handle('get-models-path', () => {
-    return getModelsDir();
-  });
-
-  ipcMain.handle('select-models-path', async () => {
-    const parent = getSettingsWindow() ?? BrowserWindow.getFocusedWindow();
+  ipcMain.handle('select-models-path', async (event) => {
+    const parent = BrowserWindow.fromWebContents(event.sender);
     const options: Electron.OpenDialogOptions = {
       title: 'Seleccionar carpeta de modelos',
       defaultPath: getModelsDir(),
@@ -164,30 +155,9 @@ export function registerIpcHandlers(preload: string, settingsHtml: string) {
     return { ok: true, settings: updateSettings({ recordShortcut: accelerator }) };
   });
 
-  ipcMain.on('close-window', (event) => {
-    const window = BrowserWindow.fromWebContents(event.sender)
-    if (window) window.close()
-  })
-
-  ipcMain.on('minimize-window', (event) => {
-    const window = BrowserWindow.fromWebContents(event.sender)
-    if (window) window.minimize()
-  })
-
-  ipcMain.on('maximize-window', (event) => {
-    const window = BrowserWindow.fromWebContents(event.sender)
-    if (window) {
-      if (window.isMaximized()) {
-        window.unmaximize()
-      } else {
-        window.maximize()
-      }
-    }
-  })
-
   let audioChunks: Buffer[] = []
 
-  ipcMain.on('audio-chunk', (event, pcmData: Int16Array) => {
+  ipcMain.on('audio-chunk', (_event, pcmData: Int16Array) => {
     const buf = Buffer.from(new Int16Array(pcmData).buffer);
     audioChunks.push(buf);
   });

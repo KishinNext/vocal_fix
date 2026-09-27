@@ -3,22 +3,8 @@ import { initNavigation } from './navigation'
 import { modelDisplayName } from '../electron/modelCatalog'
 import { initToneTabs } from './tone-tabs'
 
-// @ts-nocheck
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
-  const btnClose = document.getElementById('btn-close')
-  const btnMinimize = document.getElementById('btn-minimize')
-  const btnMaximize = document.getElementById('btn-maximize')
-  const btnSettings = document.getElementById('btn-settings')
-
-  if (btnClose) btnClose.addEventListener('click', () => window.electronAPI?.closeWindow())
-  if (btnMinimize) btnMinimize.addEventListener('click', () => window.electronAPI?.minimizeWindow())
-  if (btnMaximize) btnMaximize.addEventListener('click', () => window.electronAPI?.maximizeWindow())
-  if (btnSettings) {
-    btnSettings.addEventListener('click', () => {
-      window.location.href = '/pages/settings.html';
-    });
-  }
 
   // Load available models
   window.electronAPI?.getModels?.().then((models) => {
@@ -54,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Stub recording functionality for now
   const recordBtn = document.getElementById('recordToggleBtn');
   let isListening = false;
   const audioRecorder = new AudioRecorder();

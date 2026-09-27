@@ -13,17 +13,16 @@ process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST, 
 
 const preload = join(__dirname, './preload.cjs')
 const indexHtml = join(process.env.DIST, 'index.html')
-const settingsHtml = join(process.env.DIST, 'pages/settings.html')
 
 app.setName('VocalFix');
 if (process.platform === 'darwin') {
-  app.dock.setIcon(join(process.env.PUBLIC || '', 'logo.png'));
+  app.dock?.setIcon(join(process.env.PUBLIC || '', 'logo.png'));
 }
 
 app.whenReady().then(async () => {
   await initAI()
   createWindow(preload, indexHtml)
-  registerIpcHandlers(preload, settingsHtml)
+  registerIpcHandlers()
   registerRecordShortcut()
 
   app.on('activate', () => {

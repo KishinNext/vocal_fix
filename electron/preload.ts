@@ -1,12 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  openSettings: () => ipcRenderer.send('open-settings'),
-  closeWindow: () => ipcRenderer.send('close-window'),
-  minimizeWindow: () => ipcRenderer.send('minimize-window'),
-  maximizeWindow: () => ipcRenderer.send('maximize-window'),
   getModels: () => ipcRenderer.invoke('get-models'),
-  getModelsPath: () => ipcRenderer.invoke('get-models-path'),
   selectModelsPath: () => ipcRenderer.invoke('select-models-path'),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   updateSettings: (patch: unknown) => ipcRenderer.invoke('update-settings', patch),

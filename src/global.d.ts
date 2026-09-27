@@ -24,12 +24,7 @@ export interface DownloadProgressEvent {
 declare global {
   interface Window {
     electronAPI: {
-      openSettings: () => void;
-      closeWindow: () => void;
-      minimizeWindow: () => void;
-      maximizeWindow: () => void;
       getModels: () => Promise<{ whisper: string[], llama: string[] }>;
-      getModelsPath: () => Promise<string>;
       selectModelsPath: () => Promise<string | null>;
       getSettings: () => Promise<AppSettings>;
       updateSettings: (patch: Partial<AppSettings>) => Promise<AppSettings>;

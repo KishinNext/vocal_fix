@@ -8,14 +8,14 @@ VocalFix is designed to be a 100% offline, privacy-first desktop application for
 ## Architecture
 - **Frameworks:** Electron + Vite (Vanilla TS, HTML, TailwindCSS)
 - **Frontend (Renderer):** 
-  - `src/main.ts`, `src/settings.ts`, `src/shortcuts.ts`
+  - `src/main.ts` (editor), `src/settings.ts` + `src/settings/*` (settings pages)
   - Uses Web Audio API (`src/audio-recorder.ts`) to capture 16kHz, 16-bit PCM chunks.
   - Sends chunks via IPC (`audio-chunk`) to the main process.
 - **Backend (Main):**
   - `electron/main.ts`: Listens for `audio-stop`, builds a valid `.wav` file in the OS temp directory, and orchestrates the AI pipeline.
   - `electron/ai.ts`: The bridge to native C++ models. Uses `whisper-node` for Whisper.cpp and `node-llama-cpp` for LLaMA.cpp.
   - `electron/preload.ts`: Context bridge providing `window.electronAPI`.
-- **Models:** Stored in `models/`. Download script located at `scripts/download-models.js`.
+- **Models:** Stored in `models/` by default (configurable in Settings). Downloaded from Settings → Modelos Locales; the catalog lives in `electron/modelCatalog.ts`.
 
 ## Critical Rules for Agents
 1. **Never use Cloud APIs:** The core requirement is that this runs strictly offline using local models. Do not add OpenAI, Anthropic, or external API dependencies for the AI features.
@@ -25,7 +25,7 @@ VocalFix is designed to be a 100% offline, privacy-first desktop application for
 5. **No React/Vue/Svelte:** This project strictly uses Vanilla TypeScript and DOM manipulation for the frontend to keep it extremely lightweight and native-feeling.
 
 ## Context & Workflows
-- **Debugging AI:** If the AI pipeline fails, first check if the models exist in the `models/` directory. Run `node scripts/download-models.js` if missing.
+- **Debugging AI:** If the AI pipeline fails, first check if the models exist in the `models/` directory. Download them from Settings → Modelos Locales if missing.
 - **Modifying IPC:** When adding a new IPC channel, you must update `electron/main.ts` (the listener), `electron/preload.ts` (the exposed bridge), and `src/*.ts` (the consumer).
 
 Keep the user's goals in mind: **Performance, Privacy, and Aesthetics.** Good luck!

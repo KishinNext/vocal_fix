@@ -21,16 +21,14 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
    npm install
    ```
 
-2. **Download AI Models:**
-   VocalFix requires local AI models to function. Run the built-in script to download the minimal required `.bin` and `.gguf` files (approx. 800MB):
-   ```bash
-   node scripts/download-models.js
-   ```
-
-3. **Run the App:**
+2. **Run the App:**
    ```bash
    npm run dev
    ```
+
+3. **Download AI Models:**
+   Open **Settings → Modelos Locales** and download one Whisper model (speech-to-text) and one LLM (grammar & style).
+   Each card shows disk space and approximate RAM so you can pick one that fits your machine.
 
 ## Architecture
 - `electron/main.ts`: The main process. Handles window management, IPC routing, and audio WAV generation.
