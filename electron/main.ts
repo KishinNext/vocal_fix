@@ -11,7 +11,7 @@ const __dirname = dirname(__filename)
 process.env.DIST = join(__dirname, '../dist')
 process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST, '../public')
 
-const preload = join(__dirname, './preload.js')
+const preload = join(__dirname, './preload.cjs')
 const indexHtml = join(process.env.DIST, 'index.html')
 const settingsHtml = join(process.env.DIST, 'pages/settings.html')
 

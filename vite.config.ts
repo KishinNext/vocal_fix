@@ -25,6 +25,21 @@ export default defineConfig({
         onstart(options) {
           options.reload()
         },
+        vite: {
+          plugins: [{
+            // Sandboxed preloads (Electron's default) can't run ESM `import` statements.
+            // The plugin picks ESM from "type": "module" and array options get concatenated
+            // on merge, so the format is replaced here instead of in build.lib.
+            name: 'preload-cjs-only',
+            config(config) {
+              config.build!.lib = {
+                entry: 'electron/preload.ts',
+                formats: ['cjs'],
+                fileName: () => 'preload.cjs',
+              }
+            },
+          }],
+        },
       },
     ]),
     renderer(),
