@@ -4,14 +4,15 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
 
 ## Features
 - **100% Offline & Private:** No cloud APIs. Audio and text never leave your machine.
-- **Whisper.cpp Integration:** Real-time, fast transcription using local Whisper models.
+- **Streaming dictation:** No need to pause: text is transcribed while you speak, and each sentence gets a grammar review and a natural rewrite as soon as you pause.
+- **Whisper.cpp Integration:** Fast transcription using local Whisper models (the whisper.cpp server keeps the model loaded).
 - **LLaMA.cpp Integration:** Hardware-accelerated (Apple Silicon Metal) grammar and style correction using quantized LLM models (e.g., TinyLlama, Phi-3).
 - **Beautiful UI:** Tailor-made with modern TailwindCSS, featuring a clean layout and dynamic micro-animations.
 
 ## Tech Stack
 - **Frontend:** Vanilla TypeScript, HTML, TailwindCSS
 - **Backend:** Electron, Node.js
-- **AI Core:** `whisper-node` (Speech-to-Text), `node-llama-cpp` (LLM)
+- **AI Core:** whisper.cpp server (Speech-to-Text, sources vendored by `whisper-node`), `node-llama-cpp` (LLM)
 - **Bundler:** Vite + Vite-Electron
 
 ## Getting Started
@@ -32,6 +33,7 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
    Each card shows disk space and approximate RAM so you can pick one that fits your machine.
 
 ## Architecture
-- `electron/main.ts`: The main process. Handles window management, IPC routing, and audio WAV generation.
-- `electron/ai.ts`: The AI controller. Interfaces with local Whisper and LLaMA binaries.
+- `electron/main.ts`: The main process. Handles window management and wires IPC.
+- `electron/streamSession.ts`: Streaming pipeline: voice activity detection (`speechSegmenter.ts`), transcription (`whisperServer.ts`), grammar review and natural expression (`ai.ts`).
+- `electron/llmWorker.ts`: Runs the LLM in a utility process so model loading never freezes the app.
 - `src/`: The renderer process. Contains UI logic and the `audio-recorder.ts` utility for capturing microphone streams via the Web Audio API.

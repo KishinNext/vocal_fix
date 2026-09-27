@@ -1,8 +1,9 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
 import { initToneTabs } from './tone-tabs'
+import { TranscriptView } from './transcript-view'
 import {
-  PLACEHOLDER, appendLine, fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton,
+  fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton, type RecordState,
 } from './editor'
 
 const COPY_FEEDBACK_MS = 1800
@@ -31,21 +32,31 @@ document.addEventListener('DOMContentLoaded', () => {
     micSelect.addEventListener('change', () => audioRecorder.setMicrophone(micSelect.value))
   }
 
-  // ── Recording ──
-  const setIdle = () => { if (recordBtn) renderRecordButton(recordBtn, 'idle') }
+  const view = transcriptionEl && reviewEl && primaryRecEl
+    ? new TranscriptView({ transcription: transcriptionEl, review: reviewEl, natural: primaryRecEl })
+    : null
+
+  // ── Recording: audio streams to the main process, which transcribes on every pause ──
+  const setRecordState = (state: RecordState) => { if (recordBtn) renderRecordButton(recordBtn, state) }
+  const isListening = () => recordBtn?.dataset.state === 'listening'
+
+  const stopRecording = async () => {
+    setRecordState('idle')
+    await audioRecorder.stopRecording() // sends the last buffered audio first
+    api.sendAudioStop()
+  }
 
   recordBtn?.addEventListener('click', async () => {
-    const state = recordBtn.dataset.state ?? 'idle'
-    if (state === 'processing') return
-
-    if (state === 'idle') {
-      renderRecordButton(recordBtn, 'listening')
-      await audioRecorder.startRecording(pcmData => api.sendAudioChunk(pcmData))
-    } else {
-      // Stays "processing" until the pipeline answers (result or error)
-      renderRecordButton(recordBtn, 'processing')
-      audioRecorder.stopRecording()
-      api.sendAudioStop()
+    if (isListening()) {
+      await stopRecording()
+      return
+    }
+    setRecordState('listening')
+    try {
+      await audioRecorder.startRecording(pcm => api.sendAudioChunk(pcm))
+    } catch (e) {
+      setRecordState('idle')
+      view?.error(`No se pudo abrir el micrófono: ${e instanceof Error ? e.message : String(e)}`)
     }
   })
 
@@ -60,51 +71,32 @@ document.addEventListener('DOMContentLoaded', () => {
   api.onToggleRecording(() => recordBtn?.click())
 
   // ── Pipeline results ──
-  let lastTranscription = ''
+  if (view) {
+    api.onStreamPartial(({ id, text }) => view.partial(id, text))
+    api.onStreamFinal(({ id, text }) => view.final(id, text))
+    api.onStreamGrammar(({ id, text }) => view.grammar(id, text))
+    api.onStreamNatural(({ id, text }) => view.natural(id, text))
+  }
 
-  api.onTranscription(text => {
-    lastTranscription = text
-    if (transcriptionEl) appendLine(transcriptionEl, `🎤 ${text}`, 'text-on-surface/50 italic mb-2')
-    if (!text) setIdle() // nothing to correct, so no correction event will follow
-  })
-
-  api.onCorrection(text => {
-    if (reviewEl) appendLine(reviewEl, `✨ ${text}`, 'mb-4 text-zinc-300')
-    if (primaryRecEl) primaryRecEl.innerText = text
-    setIdle()
-  })
-
-  // Pipeline failures (missing model, whisper.cpp not built...) used to be swallowed
+  // Pipeline failures (missing model, whisper.cpp not built...) stop the recording
   api.onAiError(message => {
-    if (transcriptionEl) appendLine(transcriptionEl, `⚠ ${message}`, 'text-sm text-rose-400 mb-2')
-    setIdle()
+    view?.error(message)
+    if (isListening()) void stopRecording()
   })
 
-  // ── Tone tabs: switch the correction profile and re-correct the last dictation ──
+  // ── Tone tabs: switch the profile and re-write every confirmed sentence ──
   const toneTabs = document.getElementById('tone-tabs')
-  if (toneTabs) {
-    let previousText = ''
+  if (toneTabs && view) {
     initToneTabs(toneTabs, {
-      getText: () => lastTranscription,
-      onPending: () => {
-        if (!primaryRecEl) return
-        previousText = primaryRecEl.innerText
-        primaryRecEl.innerText = 'Reescribiendo…'
-      },
-      onResult: corrected => {
-        if (primaryRecEl) primaryRecEl.innerText = corrected
-      },
-      onError: message => {
-        console.error('Tone rewrite failed:', message)
-        if (primaryRecEl && previousText) primaryRecEl.innerText = previousText
-      },
+      onChange: () => view.rewriteAll(text => api.rewriteNatural(text)),
+      onError: message => view.error(message),
     })
   }
 
   // ── Copy ──
   document.getElementById('copyBtn')?.addEventListener('click', async () => {
-    const text = primaryRecEl?.innerText ?? ''
-    if (!text || text.includes(PLACEHOLDER)) return
+    const text = view?.naturalText() ?? ''
+    if (!text) return
 
     await navigator.clipboard.writeText(text)
     const label = document.getElementById('copyBtnText')

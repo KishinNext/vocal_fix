@@ -3,7 +3,7 @@
  *
  * Tests cover:
  *  1. Navigation system (data-path routing)
- *  2. Editor helpers (dropdowns, result lines, record button, typing check)
+ *  2. Editor helpers (dropdowns, record button, typing check)
  *  3. AudioRecorder class (unit)
  *  4. Settings pages and index.html structure
  */
@@ -199,34 +199,12 @@ describe('fillMicrophoneSelect()', () => {
   })
 })
 
-describe('appendLine()', () => {
-  beforeEach(cleanDOM)
-
-  it('clears the placeholder on the first line only', async () => {
-    const { appendLine, PLACEHOLDER } = await import('../src/editor')
-    const el = createEl('div')
-    el.innerText = PLACEHOLDER
-    appendLine(el, 'hola', 'a')
-    appendLine(el, 'mundo', 'b')
-    expect([...el.querySelectorAll('p')].map(p => [p.textContent, p.className])).toEqual([['hola', 'a'], ['mundo', 'b']])
-  })
-
-  it('renders text literally, never as markup', async () => {
-    const { appendLine } = await import('../src/editor')
-    const el = createEl('div')
-    appendLine(el, '<img src=x onerror="alert(1)">', '')
-    expect(el.querySelector('img')).toBeNull()
-    expect(el.textContent).toContain('<img')
-  })
-})
-
 describe('renderRecordButton()', () => {
   beforeEach(cleanDOM)
 
   it.each([
     ['idle', 'En pausa'],
     ['listening', 'Escuchando'],
-    ['processing', 'Procesando AI...'],
   ] as const)('renders the %s state', async (state, label) => {
     const { renderRecordButton } = await import('../src/editor')
     const btn = createEl('button')
@@ -240,7 +218,7 @@ describe('renderRecordButton()', () => {
     const btn = createEl('button')
     renderRecordButton(btn, 'listening')
     expect(btn.querySelector('.animate-pulse')).not.toBeNull()
-    renderRecordButton(btn, 'processing')
+    renderRecordButton(btn, 'idle')
     expect(btn.querySelector('.animate-pulse')).toBeNull()
   })
 })

@@ -16,15 +16,12 @@ export function renderToneTabs(container: HTMLElement, profile: Profile) {
 }
 
 interface ToneTabsOptions {
-  getText: () => string            // text to re-correct ('' = nothing yet)
-  onPending: () => void
-  onResult: (corrected: string) => void
+  onChange: (profile: Profile) => Promise<void>  // runs after the profile is saved
   onError: (message: string) => void
 }
 
 export async function initToneTabs(container: HTMLElement, options: ToneTabsOptions) {
   const api = window.electronAPI
-  let request = 0
 
   container.addEventListener('click', async event => {
     const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tone]')
@@ -34,14 +31,7 @@ export async function initToneTabs(container: HTMLElement, options: ToneTabsOpti
 
     try {
       await api.updateSettings({ profile })
-      const text = options.getText()
-      if (!text) return
-
-      // Only the latest click may write its result
-      const current = ++request
-      options.onPending()
-      const corrected = await api.fixGrammar(text)
-      if (current === request) options.onResult(corrected)
+      await options.onChange(profile)
     } catch (e) {
       options.onError(e instanceof Error ? e.message : String(e))
     }

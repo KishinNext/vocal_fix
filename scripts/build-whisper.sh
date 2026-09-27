@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds the whisper.cpp CLI that whisper-node shells out to.
+# Builds the whisper.cpp HTTP server used for transcription (electron/whisperServer.ts).
 # On macOS, prefer Xcode's own SDK: a newer Command Line Tools SDK can use
 # architectures Xcode's linker doesn't know yet ("unknown architecture arm64e.x1").
 set -e
@@ -12,4 +12,4 @@ if [ "$(uname)" = "Darwin" ]; then
   fi
 fi
 
-make main
+make server

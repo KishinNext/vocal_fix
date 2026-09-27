@@ -2,6 +2,7 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { aiManager } from './ai'
+import { whisperServer } from './whisperServer'
 import { createWindow } from './windows'
 import { registerIpcHandlers, registerRecordShortcut } from './ipc'
 
@@ -24,10 +25,11 @@ app.whenReady().then(() => {
   const mainWindow = createWindow(preload, indexHtml)
   registerRecordShortcut()
 
-  // Warm the LLM up once the editor has rendered: loading takes seconds and used to
-  // delay the window. Corrections requested before it finishes wait for it (ensureLlama).
+  // Warm both models up once the editor has rendered: loading takes seconds and used to
+  // delay the window. Requests made before they finish wait for them.
   mainWindow.webContents.once('did-finish-load', () => {
-    aiManager.init().catch(e => console.error('Failed to init AI', e))
+    aiManager.ensureLlama().catch(e => console.error('Failed to load LLM', e))
+    whisperServer.ensure().catch(e => console.warn('Whisper server not started:', e.message))
   })
 
   app.on('activate', () => {
@@ -39,6 +41,8 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+  whisperServer.stop()
+  aiManager.stop()
 })
 
 app.on('window-all-closed', () => {

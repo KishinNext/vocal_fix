@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, sanitizeSettings } from '../electron/settingsSchema'
-import { buildSystemPrompt } from '../electron/prompt'
+import { buildGrammarPrompt, buildSystemPrompt } from '../electron/prompt'
 import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile, modelDisplayName } from '../electron/modelCatalog'
 import { acceleratorToLabels, eventToAccelerator } from '../src/settings/accelerator'
 import { SETTINGS_SECTIONS, errorMessage, escapeHtml, formatBytes, memoryFit, renderSettingsNav } from '../src/settings/shared'
@@ -59,6 +59,21 @@ describe('sanitizeSettings()', () => {
   it('defaults to catalog models that exist', () => {
     expect(findCatalogModel(DEFAULT_SETTINGS.whisperModel)?.kind).toBe('whisper')
     expect(findCatalogModel(DEFAULT_SETTINGS.llmModel)?.kind).toBe('llm')
+  })
+})
+
+describe('buildGrammarPrompt()', () => {
+  it('only fixes errors and ignores tone and intervention', () => {
+    const casual = buildGrammarPrompt({ ...DEFAULT_SETTINGS, profile: 'conversational', intervention: 'creative' })
+    const formal = buildGrammarPrompt({ ...DEFAULT_SETTINGS, profile: 'business', intervention: 'minimal' })
+    expect(casual).toContain('do not rephrase')
+    expect(casual).toEqual(formal)
+  })
+
+  it('shares the rules and glossary with the natural expression', () => {
+    const settings = { ...DEFAULT_SETTINGS, rules: { removeFillers: true, normalizeContractions: false }, glossary: ['VocalFix'] }
+    expect(buildGrammarPrompt(settings)).toContain('filler')
+    expect(buildGrammarPrompt(settings)).toContain('VocalFix')
   })
 })
 
@@ -258,7 +273,6 @@ describe('tone tabs', () => {
     const api = {
       getSettings: vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, profile: 'business' }),
       updateSettings: vi.fn().mockResolvedValue(DEFAULT_SETTINGS),
-      fixGrammar: vi.fn().mockResolvedValue('Texto breve.'),
       ...overrides,
     }
     ;(window as any).electronAPI = api
@@ -268,11 +282,13 @@ describe('tone tabs', () => {
   const selected = (el: HTMLElement) =>
     [...el.querySelectorAll('[aria-selected="true"]')].map(b => (b as HTMLElement).dataset.tone)
 
+  const noop = { onChange: vi.fn().mockResolvedValue(undefined), onError: vi.fn() }
+
   it('highlights the saved profile on load', async () => {
     const { initToneTabs } = await import('../src/tone-tabs')
     mockApi()
     const tabs = mountTabs()
-    await initToneTabs(tabs, { getText: () => '', onPending: vi.fn(), onResult: vi.fn(), onError: vi.fn() })
+    await initToneTabs(tabs, noop)
     expect(selected(tabs)).toEqual(['business'])
   })
 
@@ -283,57 +299,26 @@ describe('tone tabs', () => {
     expect(selected(tabs)).toEqual([])
   })
 
-  it('saves the profile and re-corrects the last text on click', async () => {
+  it('saves the profile before notifying the change', async () => {
     const { initToneTabs } = await import('../src/tone-tabs')
     const api = mockApi()
     const tabs = mountTabs()
-    const onResult = vi.fn()
-    await initToneTabs(tabs, { getText: () => 'el texto largo', onPending: vi.fn(), onResult, onError: vi.fn() })
+    const onChange = vi.fn(async () => {
+      expect(api.updateSettings).toHaveBeenCalledWith({ profile: 'concise' })
+    })
+    await initToneTabs(tabs, { onChange, onError: vi.fn() })
 
     tabs.querySelector<HTMLButtonElement>('[data-tone="concise"]')!.click()
-    await vi.waitFor(() => expect(onResult).toHaveBeenCalledWith('Texto breve.'))
-    expect(api.updateSettings).toHaveBeenCalledWith({ profile: 'concise' })
-    expect(api.fixGrammar).toHaveBeenCalledWith('el texto largo')
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith('concise'))
     expect(selected(tabs)).toEqual(['concise'])
   })
 
-  it('only saves the profile when there is nothing to re-correct', async () => {
+  it('reports errors from the rewrite', async () => {
     const { initToneTabs } = await import('../src/tone-tabs')
-    const api = mockApi()
-    const tabs = mountTabs()
-    await initToneTabs(tabs, { getText: () => '', onPending: vi.fn(), onResult: vi.fn(), onError: vi.fn() })
-
-    tabs.querySelector<HTMLButtonElement>('[data-tone="conversational"]')!.click()
-    await vi.waitFor(() => expect(api.updateSettings).toHaveBeenCalledWith({ profile: 'conversational' }))
-    expect(api.fixGrammar).not.toHaveBeenCalled()
-  })
-
-  it('ignores a slow result superseded by a later click', async () => {
-    const { initToneTabs } = await import('../src/tone-tabs')
-    let resolveFirst!: (v: string) => void
-    const fixGrammar = vi.fn()
-      .mockImplementationOnce(() => new Promise<string>(r => { resolveFirst = r }))
-      .mockResolvedValueOnce('segundo')
-    mockApi({ fixGrammar })
-    const tabs = mountTabs()
-    const onResult = vi.fn()
-    await initToneTabs(tabs, { getText: () => 'texto', onPending: vi.fn(), onResult, onError: vi.fn() })
-
-    tabs.querySelector<HTMLButtonElement>('[data-tone="business"]')!.click()
-    await vi.waitFor(() => expect(fixGrammar).toHaveBeenCalledTimes(1))
-    tabs.querySelector<HTMLButtonElement>('[data-tone="concise"]')!.click()
-    await vi.waitFor(() => expect(onResult).toHaveBeenCalledWith('segundo'))
-    resolveFirst('primero')
-    await new Promise(r => setTimeout(r, 0))
-    expect(onResult).not.toHaveBeenCalledWith('primero')
-  })
-
-  it('reports errors from the model', async () => {
-    const { initToneTabs } = await import('../src/tone-tabs')
-    mockApi({ fixGrammar: vi.fn().mockRejectedValue(new Error('LLM model not downloaded')) })
+    mockApi()
     const tabs = mountTabs()
     const onError = vi.fn()
-    await initToneTabs(tabs, { getText: () => 'texto', onPending: vi.fn(), onResult: vi.fn(), onError })
+    await initToneTabs(tabs, { onChange: vi.fn().mockRejectedValue(new Error('LLM model not downloaded')), onError })
 
     tabs.querySelector<HTMLButtonElement>('[data-tone="business"]')!.click()
     await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('LLM model not downloaded'))

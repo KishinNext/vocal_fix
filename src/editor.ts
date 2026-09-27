@@ -2,8 +2,6 @@ import { modelDisplayName } from '../electron/modelCatalog'
 
 // DOM helpers for the editor window (src/main.ts wires them to events).
 
-export const PLACEHOLDER = 'Esperando voz...'
-
 const OPTION_CLASS = 'bg-studio-surface text-studio-heading'
 
 function createOption(text: string, value: string, className = ''): HTMLOptionElement {
@@ -32,17 +30,7 @@ export function fillMicrophoneSelect(select: HTMLSelectElement, devices: MediaDe
   })
 }
 
-// Appends a line of text, clearing the "waiting" placeholder the first time.
-// Uses textContent: transcriptions are user speech, never markup.
-export function appendLine(container: HTMLElement, text: string, className: string) {
-  if (container.innerText.includes(PLACEHOLDER)) container.innerHTML = ''
-  const line = document.createElement('p')
-  line.className = className
-  line.textContent = text
-  container.appendChild(line)
-}
-
-export type RecordState = 'idle' | 'listening' | 'processing'
+export type RecordState = 'idle' | 'listening'
 
 const RECORD_STATES: Record<RecordState, { dot: string, label: string, labelClass: string, keyClass: string }> = {
   idle: {
@@ -52,10 +40,6 @@ const RECORD_STATES: Record<RecordState, { dot: string, label: string, labelClas
   listening: {
     dot: 'bg-rose-500 animate-pulse', label: 'Escuchando', labelClass: 'text-studio-heading',
     keyClass: 'text-zinc-400 bg-white/[0.06]',
-  },
-  processing: {
-    dot: 'bg-zinc-500', label: 'Procesando AI...', labelClass: 'text-zinc-400',
-    keyClass: 'text-zinc-500 bg-white/[0.04]',
   },
 }
 

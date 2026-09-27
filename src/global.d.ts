@@ -1,5 +1,6 @@
 import type { AppSettings } from '../electron/settingsSchema';
 import type { CatalogModel, ModelKind } from '../electron/modelCatalog';
+import type { SegmentText } from '../electron/streamSession';
 
 export interface ModelStatus extends CatalogModel {
   custom: boolean;
@@ -29,7 +30,7 @@ declare global {
       getSettings: () => Promise<AppSettings>;
       updateSettings: (patch: Partial<AppSettings>) => Promise<AppSettings>;
       getSystemPrompt: () => Promise<string>;
-      fixGrammar: (text: string) => Promise<string>;
+      rewriteNatural: (text: string) => Promise<string>;
       getModelCatalog: () => Promise<ModelCatalogResponse>;
       downloadModel: (file: string) => Promise<void>;
       activateModel: (kind: ModelKind, file: string) => Promise<AppSettings>;
@@ -38,8 +39,10 @@ declare global {
       onToggleRecording: (callback: () => void) => () => void;
       sendAudioChunk: (pcmData: Int16Array) => void;
       sendAudioStop: () => void;
-      onTranscription: (callback: (text: string) => void) => () => void;
-      onCorrection: (callback: (text: string) => void) => () => void;
+      onStreamPartial: (callback: (segment: SegmentText) => void) => () => void;
+      onStreamFinal: (callback: (segment: SegmentText) => void) => () => void;
+      onStreamGrammar: (callback: (segment: SegmentText) => void) => () => void;
+      onStreamNatural: (callback: (segment: SegmentText) => void) => () => void;
       onAiError: (callback: (error: string) => void) => () => void;
     };
   }

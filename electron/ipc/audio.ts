@@ -1,42 +1,36 @@
-import { app, ipcMain } from 'electron'
-import fs from 'fs'
+import { ipcMain, type WebContents } from 'electron'
 import { aiManager } from '../ai'
-import { saveWavFile } from '../audioService'
+import { StreamSession } from '../streamSession'
+import { whisperServer } from '../whisperServer'
+
+function createSession(sender: WebContents) {
+  const send = (channel: string, payload: unknown) => {
+    if (!sender.isDestroyed()) sender.send(channel, payload)
+  }
+  return new StreamSession({
+    transcribe: (pcm, prompt) => whisperServer.transcribe(pcm, prompt),
+    correctGrammar: text => aiManager.correctGrammar(text),
+    rewriteNatural: text => aiManager.rewriteNatural(text),
+    send,
+    onError: message => send('ai-error', message),
+  })
+}
 
 export function registerAudioHandlers() {
-  let audioChunks: Buffer[] = []
+  // Audio streams in while recording; a stopped session keeps working through its
+  // queue while the next recording starts a new one.
+  let session: StreamSession | null = null
 
-  ipcMain.on('audio-chunk', (_event, pcmData: Int16Array) => {
-    audioChunks.push(Buffer.from(new Int16Array(pcmData).buffer))
+  ipcMain.on('audio-chunk', (event, pcm: Int16Array) => {
+    session ??= createSession(event.sender)
+    session.push(new Int16Array(pcm))
   })
 
-  ipcMain.on('audio-stop', async (event) => {
-    if (audioChunks.length === 0) return
-
-    // Take the chunks and reset immediately so the next recording starts clean
-    const chunksToProcess = audioChunks
-    audioChunks = []
-
-    let wavPath: string | null = null
-    try {
-      wavPath = saveWavFile(chunksToProcess, app.getPath('temp'))
-      if (!wavPath) return
-
-      const transcription = await aiManager.transcribeAudio(wavPath)
-      event.sender.send('transcription-result', transcription)
-
-      if (transcription) {
-        const corrected = await aiManager.fixGrammar(transcription)
-        event.sender.send('correction-result', corrected)
-      }
-    } catch (e) {
-      console.error('AI Processing error:', e)
-      event.sender.send('ai-error', e instanceof Error ? e.message : String(e))
-    } finally {
-      if (wavPath) fs.rmSync(wavPath, { force: true })
-    }
+  ipcMain.on('audio-stop', () => {
+    session?.stop()
+    session = null
   })
 
-  // Re-corrects existing text (e.g. after switching tone in the editor) without re-recording
-  ipcMain.handle('fix-grammar', (_event, text: string) => aiManager.fixGrammar(String(text ?? '')))
+  // Re-writes confirmed text after switching tone in the editor, without re-recording
+  ipcMain.handle('rewrite-natural', (_event, text: string) => aiManager.rewriteNatural(String(text ?? '')))
 }

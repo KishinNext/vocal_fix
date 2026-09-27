@@ -4,7 +4,7 @@ import forms from '@tailwindcss/forms'
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
-  content: ['./index.html', './src/main.ts', './src/editor.ts', './src/tone-tabs.ts'],
+  content: ['./index.html', './src/main.ts', './src/editor.ts', './src/tone-tabs.ts', './src/transcript-view.ts'],
   theme: {
     extend: {
       colors: {

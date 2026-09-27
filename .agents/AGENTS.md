@@ -12,8 +12,9 @@ VocalFix is designed to be a 100% offline, privacy-first desktop application for
   - Uses Web Audio API (`src/audio-recorder.ts`) to capture 16kHz, 16-bit PCM chunks.
   - Sends chunks via IPC (`audio-chunk`) to the main process.
 - **Backend (Main):**
-  - `electron/main.ts`: Listens for `audio-stop`, builds a valid `.wav` file in the OS temp directory, and orchestrates the AI pipeline.
-  - `electron/ai.ts`: The bridge to native C++ models. Uses `whisper-node` for Whisper.cpp and `node-llama-cpp` for LLaMA.cpp.
+  - `electron/ipc/audio.ts` → `electron/streamSession.ts`: streaming dictation. `speechSegmenter.ts` (energy VAD) cuts the audio on pauses; each utterance goes partial transcription → final transcription → grammar review → natural expression, pushed to the editor as `stream-*` events.
+  - `electron/whisperServer.ts`: runs the whisper.cpp HTTP server (built by `npm run whisper:build`, sources vendored by `whisper-node`, whose JS wrapper is not used) with the model kept loaded.
+  - `electron/ai.ts`: LLM client; `node-llama-cpp` runs in a utility process (`electron/llmWorker.ts`) because loading it blocks its thread for ~20s.
   - `electron/preload.ts`: Context bridge providing `window.electronAPI`.
 - **Models:** Stored in `models/` by default (configurable in Settings). Downloaded from Settings → Modelos Locales; the catalog lives in `electron/modelCatalog.ts`.
 
@@ -26,6 +27,6 @@ VocalFix is designed to be a 100% offline, privacy-first desktop application for
 
 ## Context & Workflows
 - **Debugging AI:** If the AI pipeline fails, first check if the models exist in the `models/` directory. Download them from Settings → Modelos Locales if missing.
-- **Modifying IPC:** When adding a new IPC channel, you must update `electron/main.ts` (the listener), `electron/preload.ts` (the exposed bridge), and `src/*.ts` (the consumer).
+- **Modifying IPC:** When adding a new IPC channel, you must update `electron/ipc/*` (the listener), `electron/preload.ts` (the exposed bridge), `src/global.d.ts` and `src/*.ts` (the consumer).
 
 Keep the user's goals in mind: **Performance, Privacy, and Aesthetics.** Good luck!
