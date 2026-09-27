@@ -76,7 +76,7 @@ export class AIManager {
         whisperOptions: { language },
       });
 
-      return result.map((r: any) => r.speech).join(' ').trim();
+      return (result ?? []).map(r => r.speech).join(' ').trim();
     } catch (e) {
       console.error('Whisper failed to load or transcribe, using fallback mock.', e);
       return "Esta es una transcripción simulada porque Whisper no pudo compilar en este sistema.";
@@ -99,20 +99,3 @@ export class AIManager {
 }
 
 export const aiManager = new AIManager();
-
-// Compatibility exports
-export async function initAI() {
-  try {
-    await aiManager.init();
-  } catch (e) {
-    console.error('Failed to init AI', e);
-  }
-}
-
-export async function transcribeAudio(wavFilePath: string): Promise<string> {
-  return aiManager.transcribeAudio(wavFilePath);
-}
-
-export async function fixGrammar(text: string): Promise<string> {
-  return aiManager.fixGrammar(text);
-}

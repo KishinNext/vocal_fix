@@ -1,9 +1,9 @@
 import { app, BrowserWindow, globalShortcut } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { initAI } from './ai'
+import { aiManager } from './ai'
 import { createWindow } from './windows'
-import { registerIpcHandlers, registerRecordShortcut } from './ipcHandlers'
+import { registerIpcHandlers, registerRecordShortcut } from './ipc'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -20,7 +20,7 @@ if (process.platform === 'darwin') {
 }
 
 app.whenReady().then(async () => {
-  await initAI()
+  await aiManager.init().catch(e => console.error('Failed to init AI', e))
   createWindow(preload, indexHtml)
   registerIpcHandlers()
   registerRecordShortcut()
