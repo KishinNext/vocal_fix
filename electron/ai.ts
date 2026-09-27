@@ -1,5 +1,6 @@
-// whisper-node dynamically imported to avoid crashing if C++ compilation fails
-import { getLlama, LlamaChatSession, LlamaModel, LlamaContext, Llama } from 'node-llama-cpp'
+// Both native libraries are imported lazily: node-llama-cpp takes ~3s to import and
+// would delay app startup; whisper-node runs side effects on import (see WHISPER_CPP_BINARY).
+import type { LlamaChatSession, LlamaModel, LlamaContext, Llama } from 'node-llama-cpp'
 import path from 'path'
 import fs from 'fs'
 import { getModelsDir, getSettings } from './settingsStore'
@@ -48,6 +49,7 @@ export class AIManager {
       return;
     }
 
+    const { getLlama, LlamaChatSession } = await import('node-llama-cpp');
     if (!this.llama) this.llama = await getLlama();
     this.llamaModel = await this.llama.loadModel({ modelPath });
     // Fixed size keeps RAM predictable (the catalog's RAM estimates assume it); corrections are short.

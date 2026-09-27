@@ -19,11 +19,16 @@ if (process.platform === 'darwin') {
   app.dock?.setIcon(join(process.env.PUBLIC || '', 'logo.png'));
 }
 
-app.whenReady().then(async () => {
-  await aiManager.init().catch(e => console.error('Failed to init AI', e))
-  createWindow(preload, indexHtml)
+app.whenReady().then(() => {
   registerIpcHandlers()
+  const mainWindow = createWindow(preload, indexHtml)
   registerRecordShortcut()
+
+  // Warm the LLM up once the editor has rendered: loading takes seconds and used to
+  // delay the window. Corrections requested before it finishes wait for it (ensureLlama).
+  mainWindow.webContents.once('did-finish-load', () => {
+    aiManager.init().catch(e => console.error('Failed to init AI', e))
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
