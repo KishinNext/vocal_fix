@@ -1,19 +1,19 @@
-import { readFileSync } from 'fs'
 /**
  * VocalFix – Frontend Unit Tests
  *
  * Tests cover:
  *  1. Navigation system (data-path routing)
- *  2. Main page button wiring (settings, record, copy)
+ *  2. Editor helpers (dropdowns, result lines, record button, typing check)
  *  3. AudioRecorder class (unit)
- *  4. Model dropdowns (dynamic population)
- *  5. Transcription / correction result handlers
- *  6. Keyboard spacebar shortcut
- *  7. Copy-to-clipboard button
- *  8. Settings page back-navigation
+ *  4. Settings pages and index.html structure
  */
 
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// vitest runs from the repo root
+const readRepoFile = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf-8')
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -69,6 +69,19 @@ describe('initNavigation()', () => {
 
     const assignSpy = vi.spyOn(window.location, 'href', 'set')
     link.click()
+    expect(assignSpy).toHaveBeenCalledWith('/pages/settings.html')
+    assignSpy.mockRestore()
+  })
+
+  it('routes the editor settings button (data-path="ajustes") to /pages/settings.html', async () => {
+    const { initNavigation } = await import('../src/navigation')
+    const btn = createEl('button')
+    btn.setAttribute('data-path', 'ajustes')
+
+    initNavigation()
+
+    const assignSpy = vi.spyOn(window.location, 'href', 'set')
+    btn.click()
     expect(assignSpy).toHaveBeenCalledWith('/pages/settings.html')
     assignSpy.mockRestore()
   })
@@ -138,313 +151,108 @@ describe('initNavigation()', () => {
 })
 
 // ─────────────────────────────────────────────────────────────
-// 2. Settings button → navigates to settings
+// 2. Editor helpers (src/editor.ts)
 // ─────────────────────────────────────────────────────────────
 
-describe('Settings button', () => {
+describe('fillModelSelect()', () => {
   beforeEach(cleanDOM)
 
-  it('btn-settings click sets location.href to /pages/settings.html', () => {
-    const btn = createEl('button', 'btn-settings')
-
-    // Wire it the same way main.ts does
-    btn.addEventListener('click', () => {
-      window.location.href = '/pages/settings.html'
-    })
-
-    const spy = vi.spyOn(window.location, 'href', 'set')
-    btn.click()
-    expect(spy).toHaveBeenCalledWith('/pages/settings.html')
-    spy.mockRestore()
-  })
-})
-
-// ─────────────────────────────────────────────────────────────
-// 3. Model dropdown population
-// ─────────────────────────────────────────────────────────────
-
-describe('Model dropdowns', () => {
-  beforeEach(cleanDOM)
-
-  it('shows "No model found" when whisper list is empty', () => {
-    const select = createEl('select', 'stt-model-select')
-    select.innerHTML = ''
-
-    const models = { whisper: [], llama: [] }
-
-    if (models.whisper.length === 0) {
-      select.innerHTML = '<option value="">No model found</option>'
-      select.disabled = true
-    }
-
-    expect(select.options.length).toBe(1)
-    expect(select.options[0].text).toBe('No model found')
+  it('shows a disabled "No model found" option when the list is empty', async () => {
+    const { fillModelSelect } = await import('../src/editor')
+    const select = createEl('select')
+    fillModelSelect(select, [])
+    expect([...select.options].map(o => o.text)).toEqual(['No model found'])
     expect(select.disabled).toBe(true)
   })
 
-  it('shows "No model found" when llama list is empty', () => {
-    const select = createEl('select', 'llm-model-select')
-    select.innerHTML = ''
-
-    const models = { whisper: [], llama: [] }
-
-    if (models.llama.length === 0) {
-      select.innerHTML = '<option value="">No model found</option>'
-      select.disabled = true
-    }
-
-    expect(select.options.length).toBe(1)
-    expect(select.disabled).toBe(true)
-  })
-
-  it('populates whisper select when models are present', () => {
-    const select = createEl('select', 'stt-model-select')
-    select.innerHTML = ''
-    const whisperModels = ['ggml-base.en.bin', 'ggml-large-v3.bin']
-
-    whisperModels.forEach(m => {
-      const opt = document.createElement('option')
-      opt.value = m
-      opt.text = m
-      select.appendChild(opt)
-    })
-
-    expect(select.options.length).toBe(2)
-    expect(select.options[0].value).toBe('ggml-base.en.bin')
-    expect(select.options[1].value).toBe('ggml-large-v3.bin')
+  it('lists files by short name, keeping the file name as value', async () => {
+    const { fillModelSelect } = await import('../src/editor')
+    const select = createEl('select')
+    select.disabled = true
+    fillModelSelect(select, ['ggml-base.bin', 'custom.gguf'])
+    expect([...select.options].map(o => [o.text, o.value])).toEqual([['Base', 'ggml-base.bin'], ['custom', 'custom.gguf']])
     expect(select.disabled).toBe(false)
   })
 
-  it('populates llama select when models are present', () => {
-    const select = createEl('select', 'llm-model-select')
-    select.innerHTML = ''
-    const llamaModels = ['mistral-7b.gguf', 'phi3-mini.gguf']
-
-    llamaModels.forEach(m => {
-      const opt = document.createElement('option')
-      opt.value = m
-      opt.text = m
-      select.appendChild(opt)
-    })
-
-    expect(select.options.length).toBe(2)
-    expect(select.options[0].value).toBe('mistral-7b.gguf')
+  it('replaces previous options when called again', async () => {
+    const { fillModelSelect } = await import('../src/editor')
+    const select = createEl('select')
+    fillModelSelect(select, ['ggml-base.bin'])
+    fillModelSelect(select, ['ggml-small.bin'])
+    expect(select.options).toHaveLength(1)
   })
 })
 
-// ─────────────────────────────────────────────────────────────
-// 4. Transcription result handler
-// ─────────────────────────────────────────────────────────────
-
-describe('Transcription result display', () => {
+describe('fillMicrophoneSelect()', () => {
   beforeEach(cleanDOM)
 
-  it('appends transcription text to #live-transcription', () => {
-    const el = createEl('div', 'live-transcription')
-    el.innerText = 'Esperando voz...'
-
-    const text = 'hola mundo'
-
-    // Simulate the handler from main.ts
-    if (el.innerText.includes('Esperando voz...')) {
-      el.innerHTML = ''
-    }
-    el.innerHTML += `<p>${text}</p>`
-
-    expect(el.innerHTML).toContain('hola mundo')
-    expect(el.innerHTML).not.toContain('Esperando voz...')
-  })
-
-  it('appends multiple transcriptions without clearing', () => {
-    const el = createEl('div', 'live-transcription')
-    el.innerHTML = '<p>first</p>'
-
-    const text = 'second'
-    // Not placeholder so don't clear
-    el.innerHTML += `<p>${text}</p>`
-
-    expect(el.innerHTML).toContain('first')
-    expect(el.innerHTML).toContain('second')
+  it('adds a default option plus each device, naming unlabeled ones', async () => {
+    const { fillMicrophoneSelect } = await import('../src/editor')
+    const select = createEl('select')
+    fillMicrophoneSelect(select, [
+      { deviceId: 'a', label: 'MacBook Mic' },
+      { deviceId: 'b', label: '' },
+    ] as MediaDeviceInfo[])
+    expect([...select.options].map(o => [o.text, o.value])).toEqual([
+      ['Predeterminado', ''], ['MacBook Mic', 'a'], ['Micrófono 2', 'b'],
+    ])
   })
 })
 
-// ─────────────────────────────────────────────────────────────
-// 5. Correction result handler
-// ─────────────────────────────────────────────────────────────
-
-describe('Correction result display', () => {
+describe('appendLine()', () => {
   beforeEach(cleanDOM)
 
-  it('appends corrected text to #grammar-review-container', () => {
-    const container = createEl('div', 'grammar-review-container')
-    container.innerText = 'Esperando voz...'
-
-    const text = 'Hola mundo corregido'
-
-    if (container.innerText.includes('Esperando voz...')) {
-      container.innerHTML = ''
-    }
-    container.innerHTML += `<p>${text}</p>`
-
-    expect(container.innerHTML).toContain('Hola mundo corregido')
+  it('clears the placeholder on the first line only', async () => {
+    const { appendLine, PLACEHOLDER } = await import('../src/editor')
+    const el = createEl('div')
+    el.innerText = PLACEHOLDER
+    appendLine(el, 'hola', 'a')
+    appendLine(el, 'mundo', 'b')
+    expect([...el.querySelectorAll('p')].map(p => [p.textContent, p.className])).toEqual([['hola', 'a'], ['mundo', 'b']])
   })
 
-  it('updates #primary-recommendation with corrected text', () => {
-    const rec = createEl('div', 'primary-recommendation')
-    rec.innerText = 'Esperando voz...'
-
-    const text = 'Texto corregido por IA'
-    rec.innerText = text
-
-    expect(rec.innerText).toBe('Texto corregido por IA')
+  it('renders text literally, never as markup', async () => {
+    const { appendLine } = await import('../src/editor')
+    const el = createEl('div')
+    appendLine(el, '<img src=x onerror="alert(1)">', '')
+    expect(el.querySelector('img')).toBeNull()
+    expect(el.textContent).toContain('<img')
   })
 })
 
-// ─────────────────────────────────────────────────────────────
-// 6. Copy to clipboard button
-// ─────────────────────────────────────────────────────────────
-
-describe('Copy button', () => {
-  beforeEach(() => {
-    cleanDOM()
-    const mockClipboard = { writeText: vi.fn().mockResolvedValue(undefined) }
-    Object.defineProperty(navigator, 'clipboard', {
-      value: mockClipboard,
-      writable: true,
-      configurable: true,
-    })
-  })
-
-  it('does not copy when primary-recommendation is empty placeholder', () => {
-    const rec = createEl('div', 'primary-recommendation')
-    rec.innerText = 'Esperando voz...'
-    const copyText = createEl('span', 'copyBtnText')
-    copyText.innerText = 'Copiar'
-
-    // Replicate copyCurrentSuggestion logic
-    const textToCopy = rec.innerText
-    if (!textToCopy || textToCopy.includes('Esperando voz...')) return
-
-    expect(navigator.clipboard.writeText).not.toHaveBeenCalled()
-  })
-
-  it('copies text when primary-recommendation has real content', async () => {
-    const rec = createEl('div', 'primary-recommendation')
-    rec.innerText = 'Texto a copiar'
-    const copyText = createEl('span', 'copyBtnText')
-    copyText.innerText = 'Copiar'
-
-    const textToCopy = rec.innerText
-    if (!textToCopy || textToCopy.includes('Esperando voz...')) return
-
-    await navigator.clipboard.writeText(textToCopy)
-    copyText.innerText = 'Copiado'
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Texto a copiar')
-    expect(copyText.innerText).toBe('Copiado')
-  })
-
-  it('restores copy button text after 1800ms', async () => {
-    vi.useFakeTimers()
-    const rec = createEl('div', 'primary-recommendation')
-    rec.innerText = 'Contenido real'
-    const copyText = createEl('span', 'copyBtnText')
-    copyText.innerText = 'Copiar'
-
-    const original = copyText.innerText
-    copyText.innerText = 'Copiado'
-    setTimeout(() => { copyText.innerText = original }, 1800)
-
-    vi.advanceTimersByTime(1800)
-    expect(copyText.innerText).toBe('Copiar')
-    vi.useRealTimers()
-  })
-})
-
-// ─────────────────────────────────────────────────────────────
-// 7. Spacebar shortcut triggers record button
-// ─────────────────────────────────────────────────────────────
-
-describe('Spacebar shortcut', () => {
+describe('renderRecordButton()', () => {
   beforeEach(cleanDOM)
 
-  it('clicks #recordToggleBtn on spacebar when not in an input', () => {
-    const btn = createEl('button', 'recordToggleBtn')
-    const clickSpy = vi.spyOn(btn, 'click')
-
-    // Attach handler as main.ts does
-    window.addEventListener('keydown', (e) => {
-      const targetTag = (e.target as HTMLElement).tagName
-      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(targetTag)
-      if (e.code === 'Space' && !isInput) {
-        e.preventDefault()
-        btn.click()
-      }
-    })
-
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true })
-    window.dispatchEvent(event)
-
-    expect(clickSpy).toHaveBeenCalledTimes(1)
+  it.each([
+    ['idle', 'En pausa'],
+    ['listening', 'Escuchando'],
+    ['processing', 'Procesando AI...'],
+  ] as const)('renders the %s state', async (state, label) => {
+    const { renderRecordButton } = await import('../src/editor')
+    const btn = createEl('button')
+    renderRecordButton(btn, state)
+    expect(btn.dataset.state).toBe(state)
+    expect(btn.textContent).toContain(label)
   })
 
-  it('does NOT trigger record button when spacebar is pressed inside an input', () => {
-    const btn = createEl('button', 'recordToggleBtn')
-    const input = createEl('input')
-    const clickSpy = vi.spyOn(btn, 'click')
-
-    window.addEventListener('keydown', (e) => {
-      const targetTag = (e.target as HTMLElement).tagName
-      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(targetTag)
-      if (e.code === 'Space' && !isInput) {
-        e.preventDefault()
-        btn.click()
-      }
-    })
-
-    // Dispatch from input element
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true })
-    Object.defineProperty(event, 'target', { value: input })
-    window.dispatchEvent(event)
-
-    expect(clickSpy).not.toHaveBeenCalled()
+  it('pulses the dot only while listening', async () => {
+    const { renderRecordButton } = await import('../src/editor')
+    const btn = createEl('button')
+    renderRecordButton(btn, 'listening')
+    expect(btn.querySelector('.animate-pulse')).not.toBeNull()
+    renderRecordButton(btn, 'processing')
+    expect(btn.querySelector('.animate-pulse')).toBeNull()
   })
 })
 
-// ─────────────────────────────────────────────────────────────
-// 8. Record button state machine
-// ─────────────────────────────────────────────────────────────
-
-describe('Record button state machine', () => {
-  beforeEach(cleanDOM)
-
-  it('toggles from idle → listening on first click', () => {
-    const btn = createEl('button', 'recordToggleBtn')
-    let isListening = false
-
-    btn.addEventListener('click', () => {
-      isListening = !isListening
-      btn.dataset.state = isListening ? 'listening' : 'idle'
-    })
-
-    btn.click()
-    expect(isListening).toBe(true)
-    expect(btn.dataset.state).toBe('listening')
-  })
-
-  it('toggles back to idle on second click', () => {
-    const btn = createEl('button', 'recordToggleBtn')
-    let isListening = false
-
-    btn.addEventListener('click', () => {
-      isListening = !isListening
-      btn.dataset.state = isListening ? 'listening' : 'idle'
-    })
-
-    btn.click()
-    btn.click()
-    expect(isListening).toBe(false)
-    expect(btn.dataset.state).toBe('idle')
+describe('isTypingTarget()', () => {
+  it('is true for form controls and false otherwise', async () => {
+    const { isTypingTarget } = await import('../src/editor')
+    expect(isTypingTarget(document.createElement('input'))).toBe(true)
+    expect(isTypingTarget(document.createElement('textarea'))).toBe(true)
+    expect(isTypingTarget(document.createElement('select'))).toBe(true)
+    expect(isTypingTarget(document.createElement('button'))).toBe(false)
+    expect(isTypingTarget(null)).toBe(false)
   })
 })
 
@@ -514,35 +322,23 @@ describe('Settings pages structure', () => {
 
   pages.forEach(page => {
     it(`${page} contains a back button with data-path="editor"`, () => {
-      const content = readFileSync(
-        `./${page}`,
-        'utf-8',
-      )
+      const content = readRepoFile(page)
       expect(content).toContain('arrow_back')
       expect(content).toContain('data-path="editor"')
     })
 
     it(`${page} includes /src/settings.ts module script`, () => {
-      const content = readFileSync(
-        `./${page}`,
-        'utf-8',
-      )
+      const content = readRepoFile(page)
       expect(content).toContain('/src/settings.ts')
     })
 
     it(`${page} does NOT contain a footer element`, () => {
-      const content = readFileSync(
-        `./${page}`,
-        'utf-8',
-      )
+      const content = readRepoFile(page)
       expect(content).not.toMatch(/<footer[\s>]/)
     })
 
     it(`${page} uses the shared sidebar and declares its page id`, () => {
-      const content = readFileSync(
-        `./${page}`,
-        'utf-8',
-      )
+      const content = readRepoFile(page)
       expect(content).toContain('id="settings-nav"')
       expect(content).toMatch(/<body[^>]*data-page="(models|rules|shortcuts)"/)
     })
@@ -557,14 +353,11 @@ describe('index.html structure', () => {
   let content: string
 
   beforeEach(() => {
-    content = readFileSync(
-      './index.html',
-      'utf-8',
-    )
+    content = readRepoFile('index.html')
   })
 
-  it('has #btn-settings button', () => {
-    expect(content).toContain('id="btn-settings"')
+  it('has #btn-settings button routed through navigation', () => {
+    expect(content).toMatch(/id="btn-settings"[^>]*data-path="ajustes"/)
   })
 
   it('has #recordToggleBtn button', () => {

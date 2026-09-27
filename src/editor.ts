@@ -6,27 +6,29 @@ export const PLACEHOLDER = 'Esperando voz...'
 
 const OPTION_CLASS = 'bg-studio-surface text-studio-heading'
 
+function createOption(text: string, value: string, className = ''): HTMLOptionElement {
+  const option = document.createElement('option')
+  option.text = text
+  option.value = value
+  option.className = className
+  return option
+}
+
 export function fillModelSelect(select: HTMLSelectElement, files: string[]) {
   select.innerHTML = ''
   select.disabled = files.length === 0
   if (files.length === 0) {
-    select.add(new Option('No model found', ''))
+    select.add(createOption('No model found', ''))
     return
   }
-  files.forEach(file => {
-    const option = new Option(modelDisplayName(file), file)
-    option.className = OPTION_CLASS
-    select.add(option)
-  })
+  files.forEach(file => select.add(createOption(modelDisplayName(file), file, OPTION_CLASS)))
 }
 
 export function fillMicrophoneSelect(select: HTMLSelectElement, devices: MediaDeviceInfo[]) {
   select.innerHTML = ''
-  select.add(new Option('Predeterminado', ''))
+  select.add(createOption('Predeterminado', ''))
   devices.forEach((device, i) => {
-    const option = new Option(device.label || `Micrófono ${i + 1}`, device.deviceId)
-    option.className = OPTION_CLASS
-    select.add(option)
+    select.add(createOption(device.label || `Micrófono ${i + 1}`, device.deviceId, OPTION_CLASS))
   })
 }
 
