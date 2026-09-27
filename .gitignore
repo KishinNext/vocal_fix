@@ -9,6 +9,10 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-electron
+
+# Downloaded AI models (large binaries)
+models
 dist-ssr
 *.local
 
