@@ -4,6 +4,11 @@ import path from 'path'
 import fs from 'fs'
 import { getModelsDir, getSettings } from './settingsStore'
 import { buildSystemPrompt } from './prompt'
+import { createRequire } from 'module'
+
+const WHISPER_CPP_BINARY = path.join(
+  path.dirname(createRequire(import.meta.url).resolve('whisper-node')), '../lib/whisper.cpp/main',
+);
 
 const LLM_CONTEXT_SIZE = 4096;
 
@@ -68,19 +73,24 @@ export class AIManager {
       throw new Error(`Whisper model not downloaded at ${whisperModelPath}`);
     }
 
-    try {
-      const { whisper } = await import('whisper-node');
-      const result = await whisper(wavFilePath, {
-        modelPath: whisperModelPath,
-        // whisper-node only forwards flags nested in whisperOptions (-l <language>)
-        whisperOptions: { language },
-      });
-
-      return (result ?? []).map(r => r.speech).join(' ').trim();
-    } catch (e) {
-      console.error('Whisper failed to load or transcribe, using fallback mock.', e);
-      return "Esta es una transcripción simulada porque Whisper no pudo compilar en este sistema.";
+    // Importing whisper-node without its binary runs `make` synchronously on the main
+    // thread (freezing the app) and calls process.exit(1) if that fails, so check first.
+    if (!fs.existsSync(WHISPER_CPP_BINARY)) {
+      throw new Error(
+        'whisper.cpp no está compilado. Ejecuta `make main` en node_modules/whisper-node/lib/whisper.cpp',
+      );
     }
+
+    const { whisper } = await import('whisper-node');
+    const result = await whisper(wavFilePath, {
+      modelPath: whisperModelPath,
+      // whisper-node only forwards flags nested in whisperOptions (-l <language>)
+      whisperOptions: { language },
+    });
+    // whisper-node logs and swallows whisper.cpp failures, returning undefined
+    if (!result) throw new Error('Whisper no pudo transcribir el audio');
+
+    return result.map(r => r.speech).join(' ').trim();
   }
 
   public async fixGrammar(text: string): Promise<string> {

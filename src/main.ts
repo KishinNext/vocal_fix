@@ -95,6 +95,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
+  // Pipeline failures (missing model, whisper.cpp not built...) used to be swallowed
+  window.electronAPI?.onAiError((message: string) => {
+    const editorEl = document.getElementById('live-transcription')
+    if (!editorEl) return
+    if (editorEl.innerText.includes('Esperando voz...')) editorEl.innerHTML = '';
+    const errorEl = document.createElement('p');
+    errorEl.className = 'text-sm text-rose-400 mb-2';
+    errorEl.textContent = `⚠ ${message}`;
+    editorEl.appendChild(errorEl);
+  })
+
   if (recordBtn) {
     recordBtn.addEventListener('click', async () => {
       isListening = !isListening;
