@@ -8,18 +8,28 @@ import { findCatalogModel } from './modelCatalog'
 import { getModelsDir, getSettings } from './settingsStore'
 import { cleanTranscript } from './transcript'
 import { encodeWav } from './wav'
+import { forgetServer, killOrphanedServer, rememberServer } from './whisperOrphan'
+
+const IS_WINDOWS = process.platform === 'win32'
+const BINARY_NAME = IS_WINDOWS ? 'server.exe' : 'server'
 
 // whisper-node is only a vendor of whisper.cpp sources (`npm run whisper:build` compiles
 // its HTTP server). Its JS wrapper is not used: it dropped the first transcribed segment.
 // The server keeps the model loaded, so live partial transcriptions take well under a second.
-const SERVER_BINARY = path.join(
-  path.dirname(createRequire(import.meta.url).resolve('whisper-node')), '../lib/whisper.cpp/server',
-)
+
+// A packaged app ships the binary in its resources (see "build" in package.json); in
+// development it is wherever scripts/build-whisper.mjs left it.
+function serverBinary(): string {
+  if (app.isPackaged) return path.join(process.resourcesPath, 'whisper', BINARY_NAME)
+  const whisperDir = path.join(path.dirname(createRequire(import.meta.url).resolve('whisper-node')), '../lib/whisper.cpp')
+  return IS_WINDOWS ? path.join(whisperDir, 'build/bin/Release', BINARY_NAME) : path.join(whisperDir, BINARY_NAME)
+}
 
 // Runs the server ("$0" "$@") and kills it once our stdin pipe closes, which happens
 // however this process ends (quit, crash, dev reload); otherwise the server, holding the
 // model in memory, would outlive the app. sh exits when the server does. The pipe is
 // passed on fd 3 because sh gives background jobs /dev/null as stdin.
+// Windows has no sh: the server is spawned directly and whisperOrphan.ts cleans up.
 const EXIT_WITH_PARENT =
   'exec 3<&0; "$0" "$@" </dev/null & pid=$!; (read _ <&3; kill $pid 2>/dev/null) & wait $pid'
 
@@ -42,6 +52,17 @@ function freePort(): Promise<number> {
 function whisperLanguage(modelFile: string, language: string): string {
   const englishOnly = findCatalogModel(modelFile)?.englishOnly ?? /\.en\./.test(modelFile)
   return englishOnly ? 'en' : language
+}
+
+function launch(binary: string, args: string[], cwd: string): ChildProcess {
+  if (IS_WINDOWS) {
+    killOrphanedServer(cwd)
+    const child = spawn(binary, args, { cwd, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true })
+    if (child.pid) rememberServer(cwd, child.pid)
+    child.on('exit', () => forgetServer(cwd))
+    return child
+  }
+  return spawn('/bin/sh', ['-c', EXIT_WITH_PARENT, binary, ...args], { cwd, stdio: ['pipe', 'ignore', 'pipe'] })
 }
 
 class WhisperServer {
@@ -71,7 +92,8 @@ class WhisperServer {
     if (!fs.existsSync(modelPath)) {
       throw new Error(`Modelo Whisper no descargado: ${path.basename(modelPath)}`)
     }
-    if (!fs.existsSync(SERVER_BINARY)) {
+    const binary = serverBinary()
+    if (!fs.existsSync(binary)) {
       throw new Error('whisper.cpp no está compilado. Ejecuta `npm run whisper:build`')
     }
 
@@ -81,9 +103,7 @@ class WhisperServer {
 
     const port = await freePort()
     const args = ['-m', modelPath, '-l', lang, '-nt', '--host', '127.0.0.1', '--port', String(port)]
-    const child = spawn('/bin/sh', ['-c', EXIT_WITH_PARENT, SERVER_BINARY, ...args], {
-      cwd, stdio: ['pipe', 'ignore', 'pipe'],
-    })
+    const child = launch(binary, args, cwd)
 
     this.stderrTail = ''
     child.stderr?.on('data', chunk => {
@@ -133,7 +153,8 @@ class WhisperServer {
   }
 
   stop() {
-    this.process?.stdin?.end() // the wrapper kills the server on EOF
+    if (IS_WINDOWS) this.process?.kill()
+    else this.process?.stdin?.end() // the wrapper kills the server on EOF
     this.process = null
     this.config = ''
   }
