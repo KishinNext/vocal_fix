@@ -9,6 +9,7 @@ import {
 } from '../modelCatalog'
 import { downloadModel, getDownloadProgress } from '../modelDownloader'
 import { getModelsDir, getSettings, updateSettings } from '../settingsStore'
+import { whisperServer } from '../whisperServer'
 
 function listModelFiles(modelsDir: string): string[] {
   if (!fs.existsSync(modelsDir)) return []
@@ -87,8 +88,9 @@ export function registerModelHandlers() {
     fs.mkdirSync(selected, { recursive: true })
     updateSettings({ modelsPath: selected })
 
-    // The active LLM may exist (or not) in the new folder
+    // The active models may exist (or not) in the new folder
     aiManager.ensureLlama().catch(e => console.error('Failed to reload LLM after path change', e))
+    whisperServer.ensure().catch(e => console.warn('Whisper server not restarted after path change:', e.message))
     return selected
   })
 
@@ -107,7 +109,9 @@ export function registerModelHandlers() {
       throw new Error(`El modelo no está descargado: ${name}`)
     }
     const settings = updateSettings(kind === 'whisper' ? { whisperModel: name } : { llmModel: name })
+    // Load it now, so the first dictation after the switch does not wait for it
     if (kind === 'llm') await aiManager.ensureLlama()
+    else await whisperServer.ensure()
     return settings
   })
 }

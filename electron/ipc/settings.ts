@@ -3,6 +3,7 @@ import { buildSystemPrompt } from '../prompt'
 import type { AppSettings } from '../settingsSchema'
 import { getSettings, updateSettings } from '../settingsStore'
 import { applyRecordShortcut } from '../shortcuts'
+import { whisperServer } from '../whisperServer'
 import { getMainWindow } from '../windows'
 
 // Renderer-editable settings. Models and the shortcut have dedicated handlers
@@ -30,7 +31,13 @@ export function registerSettingsHandlers() {
     const allowed = Object.fromEntries(
       Object.entries(patch ?? {}).filter(([key]) => EDITABLE_KEYS.includes(key as keyof AppSettings)),
     )
-    return updateSettings(allowed)
+    const previousLanguage = getSettings().language
+    const settings = updateSettings(allowed)
+    // The server is started for one language: restart it now rather than on the next utterance
+    if (settings.language !== previousLanguage) {
+      whisperServer.ensure().catch(e => console.warn('Whisper server not restarted after language change:', e.message))
+    }
+    return settings
   })
 
   ipcMain.handle('get-system-prompt', () => buildSystemPrompt(getSettings()))
