@@ -154,6 +154,76 @@ describe('StreamSession', () => {
     expect(transcribe).toHaveBeenCalledTimes(2) // the stale partial, then the final only
   })
 
+  describe('when transcription is slower than the partial step', () => {
+    // Each transcription advances the fake clock by `tookMs`
+    function createTimedSession(tookMs: number) {
+      const clock = { ms: 0 }
+      const transcribe = vi.fn(async (pcm: Int16Array) => {
+        clock.ms += tookMs
+        return `said ${pcm.length}`
+      })
+      return { ...createSession({ transcribe, now: () => clock.ms }), transcribe, clock }
+    }
+
+    it('drops the partials that arrive while whisper rests', async () => {
+      // Arrange
+      const { session, transcribe, clock } = createTimedSession(1500)
+      session.push(speech(1000))
+      await session.idle()
+      clock.ms += 800
+
+      // Act
+      session.push(speech(800))
+      await session.idle()
+
+      // Assert
+      expect(transcribe).toHaveBeenCalledTimes(1)
+    })
+
+    it('transcribes partials again once the rest is over', async () => {
+      // Arrange
+      const { session, transcribe, clock } = createTimedSession(1500)
+      session.push(speech(1000))
+      await session.idle()
+      clock.ms += 1500
+
+      // Act
+      session.push(speech(800))
+      await session.idle()
+
+      // Assert
+      expect(transcribe).toHaveBeenCalledTimes(2)
+    })
+
+    it('transcribes a confirmed utterance without waiting for the rest', async () => {
+      // Arrange
+      const { session, sent } = createTimedSession(1500)
+      session.push(speech(1000))
+      await session.idle()
+
+      // Act
+      session.stop()
+      await session.idle()
+
+      // Assert
+      expect(sent.map(([channel]) => channel)).toContain('stream-final')
+    })
+
+    it('does not rest after a fast transcription', async () => {
+      // Arrange
+      const { session, transcribe } = createTimedSession(500)
+      session.push(speech(1000))
+      await session.idle()
+
+      // Act
+      session.push(speech(800))
+      await session.idle()
+
+      // Assert
+      expect(transcribe).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('does not review empty or discarded utterances', async () => {
     const { session, sent, deps } = createSession({ transcribe: vi.fn().mockResolvedValue('') })
     session.push(concat(speech(400), silence(800)))

@@ -1,4 +1,4 @@
-import { SpeechSegmenter, type SegmentEvent } from './speechSegmenter'
+import { DEFAULT_SEGMENTER_OPTIONS, SpeechSegmenter, type SegmentEvent } from './speechSegmenter'
 
 // One recording: cuts the audio into utterances and pushes each one through
 // partial transcription -> final transcription -> grammar review -> natural expression.
@@ -16,10 +16,13 @@ export interface StreamDeps {
   rewriteNatural: (text: string) => Promise<string>
   send: (channel: StreamChannel, payload: SegmentText) => void
   onError: (message: string) => void
+  now?: () => number  // clock in ms; replaced in tests
 }
 
 // Previous sentence handed to whisper as context
 const CONTEXT_CHARS = 200
+// A transcription slower than this cannot keep up with the partials being requested
+const SLOW_TRANSCRIBE_MS = DEFAULT_SEGMENTER_OPTIONS.partialStepMs
 
 let sessionCount = 0
 
@@ -33,10 +36,13 @@ export class StreamSession {
   private reviews: Promise<void> = Promise.resolve()
   private context = ''
   private failed = false
+  private partialsResumeAt = 0
   private readonly deps: StreamDeps
+  private readonly now: () => number
 
   constructor(deps: StreamDeps) {
     this.deps = deps
+    this.now = deps.now ?? Date.now
   }
 
   push(pcm: Int16Array) {
@@ -72,6 +78,8 @@ export class StreamSession {
 
   // Whisper work runs one request at a time; confirmed utterances go first and
   // partials that fell behind are skipped, so the queue never grows while speaking.
+  // After a slow transcription partials rest for as long as it took: a final cannot
+  // interrupt a partial in flight, so whisper must not be busy with them all the time.
   private async pump() {
     try {
       while (!this.failed) {
@@ -83,15 +91,25 @@ export class StreamSession {
         const partial = this.partial
         this.partial = null
         if (!partial) break
-        if (partial.segment > this.lastFinalSegment) await this.transcribePartial(partial)
+        if (partial.segment > this.lastFinalSegment && this.now() >= this.partialsResumeAt) {
+          await this.transcribePartial(partial)
+        }
       }
     } catch (e) {
       this.fail(e)
     }
   }
 
-  private async transcribePartial(event: SegmentEvent) {
+  private async transcribe(event: SegmentEvent) {
+    const started = this.now()
     const text = await this.deps.transcribe(event.audio, this.context)
+    const took = this.now() - started
+    this.partialsResumeAt = took > SLOW_TRANSCRIBE_MS ? this.now() + took : 0
+    return text
+  }
+
+  private async transcribePartial(event: SegmentEvent) {
+    const text = await this.transcribe(event)
     // The utterance may have been confirmed while this partial was running
     if (event.segment > this.lastFinalSegment && text) {
       this.deps.send('stream-partial', { id: this.id(event.segment), text })
@@ -100,7 +118,7 @@ export class StreamSession {
 
   private async transcribeFinal(event: SegmentEvent) {
     const id = this.id(event.segment)
-    const text = event.audio.length > 0 ? await this.deps.transcribe(event.audio, this.context) : ''
+    const text = event.audio.length > 0 ? await this.transcribe(event) : ''
     this.deps.send('stream-final', { id, text })
     if (!text) return
 
