@@ -22,7 +22,7 @@ VocalFix is designed to be a 100% offline, privacy-first desktop application for
 1. **Never use Cloud APIs:** The core requirement is that this runs strictly offline using local models. Do not add OpenAI, Anthropic, or external API dependencies for the AI features.
 2. **ES Modules:** The project uses `"type": "module"`. When working in the Node.js backend (`electron/*`), remember that `__dirname` is not globally defined. Use the `import.meta.url` trick.
 3. **Audio Handling:** Whisper.cpp strictly requires 16000Hz, 16-bit Mono WAV files. Do not change the `AudioContext` sample rate or the WAV header construction logic unless absolutely necessary.
-4. **Tailwind Styling:** The UI is heavily customized with Tailwind classes and a custom color palette defined in the `<script id="tailwind-config">` inside the HTML files. Maintain the dark-mode, glassmorphic, and dynamic aesthetic. Do not use plain colors.
+4. **Tailwind Styling:** One palette (`vf-*` colours) and the Geist fonts are defined in `tailwind.config.js`; shared component classes (`vf-btn`, `vf-list`, `vf-kbd`...) live in `src/styles/app.css`. Keep the dark, flat look and reuse those tokens instead of hard-coding new colours.
 5. **No React/Vue/Svelte:** This project strictly uses Vanilla TypeScript and DOM manipulation for the frontend to keep it extremely lightweight and native-feeling.
 
 ## Context & Workflows
