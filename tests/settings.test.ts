@@ -2,6 +2,8 @@
  * VocalFix – Settings logic tests (pure modules shared by main and renderer)
  */
 
+import { mkdtempSync, readFileSync, readdirSync } from 'fs'
+import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, PROFILES, sanitizeSettings } from '../electron/settingsSchema'
@@ -10,6 +12,7 @@ import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile,
 } from '../electron/modelCatalog'
 import { acceleratorToLabels, eventToAccelerator, modifierHint } from '../src/settings/accelerator'
 import { resolveAppFile } from '../electron/appFiles'
+import { downloadModel } from '../electron/modelDownloader'
 import { isServerProcess } from '../electron/whisperOrphan'
 import { SETTINGS_SECTIONS, errorMessage, escapeHtml, formatBytes, memoryFit, renderSettingsNav } from '../src/settings/shared'
 
@@ -434,5 +437,92 @@ describe('resolveAppFile()', () => {
 
     // Assert
     expect(file).toBeNull()
+  })
+})
+
+describe('downloadModel() retries', () => {
+  const model = { ...WHISPER_MODELS[0], file: 'test-model.bin', sizeBytes: 10 }
+  const fast = { retryDelayMs: 1, stallTimeoutMs: 200 }
+  const newDir = () => mkdtempSync(join(tmpdir(), 'vocalfix-download-'))
+
+  // A response whose connection drops after sending `sent`
+  function broken(sent: string) {
+    return new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sent))
+        // Fail once those bytes have reached the disk
+        setTimeout(() => controller.error(new Error('connection reset')), 30)
+      },
+    }))
+  }
+
+  it('continues from the bytes already received after a dropped connection', async () => {
+    // Arrange
+    const dir = newDir()
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(broken('01234'))
+      .mockResolvedValueOnce(new Response('56789', { status: 206 }))
+
+    // Act
+    await downloadModel(model, dir, vi.fn(), { ...fast, fetch })
+
+    // Assert
+    expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
+    expect(fetch.mock.calls[1][1].headers).toEqual({ Range: 'bytes=5-' })
+  })
+
+  it('starts over when the server ignores the resume request', async () => {
+    // Arrange
+    const dir = newDir()
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(broken('01234'))
+      .mockResolvedValueOnce(new Response('0123456789', { status: 200 }))
+
+    // Act
+    await downloadModel(model, dir, vi.fn(), { ...fast, fetch })
+
+    // Assert
+    expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
+  })
+
+  it('gives up after the last attempt and leaves no partial file', async () => {
+    // Arrange
+    const dir = newDir()
+    const fetch = vi.fn().mockRejectedValue(new Error('network down'))
+
+    // Act
+    const result = downloadModel(model, dir, vi.fn(), { ...fast, fetch, maxAttempts: 3 })
+
+    // Assert
+    await expect(result).rejects.toThrow('network down')
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(readdirSync(dir)).toEqual([])
+  })
+
+  it('does not retry a file that does not exist', async () => {
+    // Arrange
+    const fetch = vi.fn().mockResolvedValue(new Response('', { status: 404, statusText: 'Not Found' }))
+
+    // Act
+    const result = downloadModel(model, newDir(), vi.fn(), { ...fast, fetch })
+
+    // Assert
+    await expect(result).rejects.toThrow('Descarga fallida (404 Not Found)')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries a connection that stops sending data', async () => {
+    // Arrange
+    const dir = newDir()
+    const stalled = (_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener('abort', () => reject(init.signal!.reason))
+    })
+    const fetch = vi.fn().mockImplementationOnce(stalled).mockResolvedValueOnce(new Response('0123456789'))
+
+    // Act
+    await downloadModel(model, dir, vi.fn(), { ...fast, fetch, stallTimeoutMs: 30 })
+
+    // Assert
+    expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
   })
 })
