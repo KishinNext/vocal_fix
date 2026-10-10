@@ -6,6 +6,7 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
 - **100% Offline & Private:** No cloud APIs. Audio and text never leave your machine.
 - **Streaming dictation:** No need to pause: text is transcribed while you speak, and each sentence gets a grammar review and a natural rewrite as soon as you pause.
 - **Whisper.cpp Integration:** Fast transcription using local Whisper models (the whisper.cpp server keeps the model loaded).
+- **macOS and Windows:** Metal acceleration on Apple Silicon; CPU on Windows.
 - **LLaMA.cpp Integration:** Hardware-accelerated (Apple Silicon Metal) grammar and style correction using quantized LLM models (e.g., TinyLlama, Phi-3).
 - **Beautiful UI:** Tailor-made with modern TailwindCSS, featuring a clean layout and dynamic micro-animations.
 
@@ -20,8 +21,10 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
 1. **Install Dependencies:**
    ```bash
    npm install
-   npm run whisper:build   # compiles whisper.cpp (needs Xcode or the Command Line Tools)
+   npm run whisper:build   # compiles the whisper.cpp server
    ```
+   - **macOS:** needs Xcode or the Command Line Tools.
+   - **Windows:** needs Visual Studio Build Tools (C++ workload) and CMake.
 
 2. **Run the App:**
    ```bash
@@ -29,8 +32,20 @@ VocalFix is a local, privacy-first Electron application designed to act as your 
    ```
 
 3. **Download AI Models:**
-   Open **Settings → Modelos Locales** and download one Whisper model (speech-to-text) and one LLM (grammar & style).
-   Each card shows disk space and approximate RAM so you can pick one that fits your machine.
+   Open **Ajustes → Modelos Locales** and download one Whisper model (speech-to-text) and one LLM (grammar & style).
+   Each model shows disk space and approximate RAM so you can pick one that fits your machine.
+
+## Installers
+
+```bash
+npm run dist   # release/VocalFix-<version>.dmg on macOS, release/VocalFix Setup <version>.exe on Windows
+```
+
+Each installer has to be built on its own system. The `Build installers` GitHub Actions workflow
+(`.github/workflows/build.yml`) builds both: run it from the Actions tab and download the artifacts,
+or push a tag such as `v0.1.0` to publish them as a GitHub Release.
+
+The installers are not signed with a developer certificate, so macOS and Windows warn the first time they are opened.
 
 ## Architecture
 - `electron/main.ts`: The main process. Handles window management and wires IPC.

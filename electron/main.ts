@@ -2,6 +2,7 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { aiManager } from './ai'
+import { registerAppScheme, serveApp } from './appProtocol'
 import { whisperServer } from './whisperServer'
 import { createWindow } from './windows'
 import { registerIpcHandlers, registerRecordShortcut } from './ipc'
@@ -13,7 +14,9 @@ process.env.DIST = join(__dirname, '../dist')
 process.env.PUBLIC = app.isPackaged ? process.env.DIST : join(process.env.DIST, '../public')
 
 const preload = join(__dirname, './preload.cjs')
-const indexHtml = join(process.env.DIST, 'index.html')
+const dist = process.env.DIST
+
+registerAppScheme()
 
 app.setName('VocalFix');
 if (process.platform === 'darwin') {
@@ -21,8 +24,9 @@ if (process.platform === 'darwin') {
 }
 
 app.whenReady().then(() => {
+  serveApp(dist)
   registerIpcHandlers()
-  const mainWindow = createWindow(preload, indexHtml)
+  const mainWindow = createWindow(preload)
   registerRecordShortcut()
 
   // Warm both models up once the editor has rendered: loading takes seconds and used to
@@ -34,7 +38,7 @@ app.whenReady().then(() => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow(preload, indexHtml)
+      createWindow(preload)
     }
   })
 })

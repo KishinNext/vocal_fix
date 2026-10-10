@@ -2,13 +2,20 @@
  * VocalFix – Settings logic tests (pure modules shared by main and renderer)
  */
 
+import { join, resolve } from 'path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, PROFILES, sanitizeSettings } from '../electron/settingsSchema'
 import { buildGrammarPrompt, buildSystemPrompt } from '../electron/prompt'
 import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile, modelDisplayName, recommendedModels,
 } from '../electron/modelCatalog'
-import { acceleratorToLabels, eventToAccelerator } from '../src/settings/accelerator'
+import { acceleratorToLabels, eventToAccelerator, modifierHint } from '../src/settings/accelerator'
+import { resolveAppFile } from '../electron/appFiles'
+import { isServerProcess } from '../electron/whisperOrphan'
 import { SETTINGS_SECTIONS, errorMessage, escapeHtml, formatBytes, memoryFit, renderSettingsNav } from '../src/settings/shared'
+
+// The shortcut helpers follow the platform; these tests pin macOS unless they say otherwise
+const toAccelerator = (event: Parameters<typeof eventToAccelerator>[0]) => eventToAccelerator(event, true)
+const toLabels = (accelerator: string) => acceleratorToLabels(accelerator, true)
 
 function key(code: string, mods: Partial<Record<'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey', boolean>> = {}) {
   return { code, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods }
@@ -159,35 +166,35 @@ describe('model catalog', () => {
   })
 })
 
-describe('eventToAccelerator()', () => {
+describe('toAccelerator()', () => {
   it('builds an accelerator from modifiers and key', () => {
-    expect(eventToAccelerator(key('Space', { metaKey: true, shiftKey: true }))).toBe('Command+Shift+Space')
-    expect(eventToAccelerator(key('KeyR', { altKey: true }))).toBe('Alt+R')
-    expect(eventToAccelerator(key('Digit1', { ctrlKey: true }))).toBe('Control+1')
-    expect(eventToAccelerator(key('F5', { metaKey: true }))).toBe('Command+F5')
+    expect(toAccelerator(key('Space', { metaKey: true, shiftKey: true }))).toBe('Command+Shift+Space')
+    expect(toAccelerator(key('KeyR', { altKey: true }))).toBe('Alt+R')
+    expect(toAccelerator(key('Digit1', { ctrlKey: true }))).toBe('Control+1')
+    expect(toAccelerator(key('F5', { metaKey: true }))).toBe('Command+F5')
   })
 
   it('returns null while only a modifier is pressed', () => {
-    expect(eventToAccelerator(key('ShiftLeft', { shiftKey: true }))).toBeNull()
+    expect(toAccelerator(key('ShiftLeft', { shiftKey: true }))).toBeNull()
   })
 
   it('rejects combos without a modifier', () => {
-    expect(eventToAccelerator(key('KeyA'))).toBeNull()
+    expect(toAccelerator(key('KeyA'))).toBeNull()
   })
 
   it('rejects unsupported keys', () => {
-    expect(eventToAccelerator(key('IntlBackslash', { metaKey: true }))).toBeNull()
+    expect(toAccelerator(key('IntlBackslash', { metaKey: true }))).toBeNull()
   })
 })
 
-describe('acceleratorToLabels()', () => {
+describe('toLabels()', () => {
   it('maps modifiers to macOS symbols', () => {
-    expect(acceleratorToLabels('CommandOrControl+Shift+Space')).toEqual(['⌘', '⇧', 'Espacio'])
-    expect(acceleratorToLabels('Alt+R')).toEqual(['⌥', 'R'])
+    expect(toLabels('CommandOrControl+Shift+Space')).toEqual(['⌘', '⇧', 'Espacio'])
+    expect(toLabels('Alt+R')).toEqual(['⌥', 'R'])
   })
 
   it('returns no labels for a disabled shortcut', () => {
-    expect(acceleratorToLabels('')).toEqual([])
+    expect(toLabels('')).toEqual([])
   })
 })
 
@@ -363,5 +370,69 @@ describe('recommendedModels()', () => {
     // Assert
     expect(roomy).toContain('ggml-large-v3.bin')
     expect(small).not.toContain('ggml-large-v3.bin')
+  })
+})
+
+describe('shortcuts on Windows', () => {
+  it('records the Windows key as Super, which Electron accepts there', () => {
+    // Arrange
+    const event = key('Space', { metaKey: true, shiftKey: true })
+
+    // Act
+    const accelerator = eventToAccelerator(event, false)
+
+    // Assert
+    expect(accelerator).toBe('Super+Shift+Space')
+  })
+
+  it('labels modifiers with words instead of macOS symbols', () => {
+    // Act
+    const labels = acceleratorToLabels('CommandOrControl+Shift+Space', false)
+
+    // Assert
+    expect(labels).toEqual(['Ctrl', 'Shift', 'Espacio'])
+  })
+
+  it('names the modifiers in the hint', () => {
+    // Act
+    const hint = modifierHint(false)
+
+    // Assert
+    expect(hint).toBe('Ctrl, Alt, Shift o Win')
+  })
+})
+
+describe('isServerProcess()', () => {
+  it.each([
+    ['"server.exe","4321","Console","1","52,100 K"', true],
+    ['"notepad.exe","4321","Console","1","8,000 K"', false],
+    ['"server.exe","99","Console","1","52,100 K"', false],
+    ['INFO: No tasks are running which match the specified criteria.', false],
+  ])('%s -> %s', (tasklistOutput, expected) => {
+    // Act
+    const found = isServerProcess(tasklistOutput, 4321)
+
+    // Assert
+    expect(found).toBe(expected)
+  })
+})
+
+describe('resolveAppFile()', () => {
+  const root = resolve('/app/dist')
+
+  it('maps a page URL to a file inside the build folder', () => {
+    // Act
+    const file = resolveAppFile(root, 'app://vocalfix/pages/settings.html')
+
+    // Assert
+    expect(file).toBe(join(root, 'pages', 'settings.html'))
+  })
+
+  it('refuses URLs that escape the build folder', () => {
+    // Act
+    const file = resolveAppFile(root, 'app://vocalfix/..%2f..%2fetc%2fpasswd')
+
+    // Assert
+    expect(file).toBeNull()
   })
 })
