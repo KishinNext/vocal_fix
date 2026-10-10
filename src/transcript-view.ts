@@ -24,14 +24,14 @@ export interface TranscriptPanels {
 }
 
 const CLASSES = {
-  saidPartial: 'mb-2 text-zinc-500',
-  saidFinal: 'mb-2',
-  review: 'mb-2 text-zinc-300 leading-relaxed',
-  natural: 'mb-2 text-studio-heading',
-  pending: 'mb-2 text-zinc-600',
-  del: 'line-through text-rose-400/80',
-  add: 'text-emerald-400 bg-emerald-500/15 rounded px-1',
-  error: 'mb-2 text-sm text-rose-400',
+  saidPartial: 'mb-1.5 text-vf-faint',
+  saidFinal: 'mb-1.5',
+  review: 'mb-1.5',
+  natural: 'mb-1.5',
+  pending: 'mb-1.5 text-vf-ghost',
+  del: 'line-through text-[#ef6b6b]',
+  add: 'bg-[#1f3a2b] text-[#7fe0a6] rounded-[3px] px-[3px]',
+  error: 'mb-1.5 text-sm text-[#ef6b6b]',
 }
 
 const PENDING_TEXT = '…'

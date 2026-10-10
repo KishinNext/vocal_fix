@@ -1,4 +1,4 @@
-// Tailwind is compiled at build time; each stylesheet in src/styles picks its config via @config.
+// Tailwind is compiled at build time from tailwind.config.js
 export default {
   plugins: {
     tailwindcss: {},

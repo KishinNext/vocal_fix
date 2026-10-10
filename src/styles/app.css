@@ -1,0 +1,51 @@
+/* Fonts bundled locally: the app must work offline and not wait on Google Fonts */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { overscroll-behavior: none; }
+  summary { list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+}
+
+@layer components {
+  .vf-kbd {
+    @apply font-mono text-[11px] text-vf-mute bg-vf-raised border border-vf-chip rounded px-1.5 py-px;
+  }
+  /* Small uppercase caption above a group */
+  .vf-label {
+    @apply font-mono text-[10.5px] tracking-[.08em] text-vf-faint uppercase;
+  }
+  .vf-btn {
+    @apply bg-transparent text-vf-soft border border-vf-stroke2 rounded-md px-3 py-[5px] text-xs cursor-pointer transition-colors hover:bg-vf-raised;
+  }
+  .vf-btn-solid {
+    @apply bg-vf-key text-vf-ink border border-vf-stroke2 rounded-md px-3 py-[5px] text-xs cursor-pointer transition-colors hover:bg-vf-stroke;
+  }
+  .vf-btn-text {
+    @apply text-vf-mute text-xs px-1.5 py-[3px] rounded-[5px] cursor-pointer transition-colors hover:text-vf-ink hover:bg-vf-raised;
+  }
+  .vf-select {
+    @apply bg-vf-field text-vf-soft border border-vf-rim rounded-md py-1 pl-2 pr-7 text-xs cursor-pointer focus:ring-0 focus:border-vf-stroke2;
+  }
+  /* Bordered list whose rows are separated by hairlines */
+  .vf-list {
+    @apply flex flex-col border border-vf-edge rounded-[10px] overflow-hidden divide-y divide-vf-line;
+  }
+  /* Collapsible section header (inside <details class="group">) */
+  .vf-summary {
+    @apply flex items-center gap-2 py-3.5 text-[13px] text-vf-mute cursor-pointer transition-colors hover:text-vf-ink;
+  }
+  .vf-chevron {
+    @apply font-mono w-3 transition-transform group-open:rotate-90;
+  }
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }

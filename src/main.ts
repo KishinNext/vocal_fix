@@ -1,13 +1,13 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
-import { initToneTabs } from './tone-tabs'
+import { initToneSelect } from './tone-select'
 import { Speaker } from './speech'
 import { TranscriptView } from './transcript-view'
-import {
-  bindModelSelect, fillMicrophoneSelect, fillModelSelect, isTypingTarget, renderRecordButton, type RecordState,
-} from './editor'
+import { fillMicrophoneSelect, formatElapsed, isTypingTarget, renderRecordButton, type RecordState } from './editor'
+import { modelDisplayName } from '../electron/modelCatalog'
 
 const COPY_FEEDBACK_MS = 1800
+const REC_TIMER_MS = 500
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
@@ -18,21 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const reviewEl = document.getElementById('grammar-review-container')
   const primaryRecEl = document.getElementById('primary-recommendation')
   const recordBtn = document.getElementById('recordToggleBtn')
-  const sttSelect = document.getElementById('stt-model-select') as HTMLSelectElement | null
-  const llmSelect = document.getElementById('llm-model-select') as HTMLSelectElement | null
+  const sttLabel = document.getElementById('stt-model-label')
+  const llmLabel = document.getElementById('llm-model-label')
   const micSelect = document.getElementById('mic-select') as HTMLSelectElement | null
 
-  // Model dropdowns show and change the models saved in Settings
-  Promise.all([api.getModels(), api.getSettings()]).then(([models, settings]) => {
-    const showError = (message: string) => view?.error(message)
-    if (sttSelect) {
-      fillModelSelect(sttSelect, models.whisper, settings.whisperModel)
-      bindModelSelect(sttSelect, file => api.activateModel('whisper', file), showError)
-    }
-    if (llmSelect) {
-      fillModelSelect(llmSelect, models.llama, settings.llmModel)
-      bindModelSelect(llmSelect, file => api.activateModel('llm', file), showError)
-    }
+  // The header pill names the models in use; clicking it opens Settings > Modelos locales
+  api.getSettings().then(settings => {
+    if (sttLabel) sttLabel.textContent = modelDisplayName(settings.whisperModel)
+    if (llmLabel) llmLabel.textContent = modelDisplayName(settings.llmModel)
   })
 
   const audioRecorder = new AudioRecorder()
@@ -67,7 +60,19 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 
   // ── Recording: audio streams to the main process, which transcribes on every pause ──
-  const setRecordState = (state: RecordState) => { if (recordBtn) renderRecordButton(recordBtn, state) }
+  let recTimer: ReturnType<typeof setInterval> | undefined
+  const setRecordState = (state: RecordState) => {
+    if (!recordBtn) return
+    renderRecordButton(recordBtn, state)
+    clearInterval(recTimer)
+    if (state !== 'listening') return
+    const startedAt = Date.now()
+    recTimer = setInterval(() => {
+      const time = recordBtn.querySelector('[data-rec-time]')
+      if (time) time.textContent = formatElapsed((Date.now() - startedAt) / 1000)
+    }, REC_TIMER_MS)
+  }
+  setRecordState('idle')
   const isListening = () => recordBtn?.dataset.state === 'listening'
 
   const stopRecording = async () => {
@@ -114,10 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isListening()) void stopRecording()
   })
 
-  // ── Tone tabs: switch the profile and re-write every confirmed sentence ──
-  const toneTabs = document.getElementById('tone-tabs')
-  if (toneTabs && view) {
-    initToneTabs(toneTabs, {
+  // ── Tone: switch the profile and re-write every confirmed sentence ──
+  const toneSelect = document.getElementById('tone-select') as HTMLSelectElement | null
+  if (toneSelect && view) {
+    initToneSelect(toneSelect, {
       onChange: () => view.rewriteAll(text => api.rewriteNatural(text)),
       onError: message => view.error(message),
     })

@@ -1,79 +1,56 @@
-import { modelDisplayName } from '../electron/modelCatalog'
-
 // DOM helpers for the editor window (src/main.ts wires them to events).
 
-const OPTION_CLASS = 'bg-studio-surface text-studio-heading'
-
-function createOption(text: string, value: string, className = ''): HTMLOptionElement {
+function createOption(text: string, value: string): HTMLOptionElement {
   const option = document.createElement('option')
   option.text = text
   option.value = value
-  option.className = className
   return option
-}
-
-// `active` is the model saved in Settings; it is shown selected
-export function fillModelSelect(select: HTMLSelectElement, files: string[], active = '') {
-  select.innerHTML = ''
-  select.disabled = files.length === 0
-  if (files.length === 0) {
-    select.add(createOption('No model found', ''))
-    return
-  }
-  files.forEach(file => select.add(createOption(modelDisplayName(file), file, OPTION_CLASS)))
-  if (files.includes(active)) select.value = active
-}
-
-// Activates (and saves) the model chosen in the dropdown; on failure the previous one is shown again
-export function bindModelSelect(
-  select: HTMLSelectElement,
-  activate: (file: string) => Promise<unknown>,
-  onError: (message: string) => void,
-) {
-  let active = select.value
-  select.addEventListener('change', async () => {
-    const chosen = select.value
-    select.disabled = true // loading an LLM takes a few seconds
-    try {
-      await activate(chosen)
-      active = chosen
-    } catch (e) {
-      select.value = active
-      onError(e instanceof Error ? e.message : String(e))
-    } finally {
-      select.disabled = false
-    }
-  })
 }
 
 export function fillMicrophoneSelect(select: HTMLSelectElement, devices: MediaDeviceInfo[]) {
   select.innerHTML = ''
   select.add(createOption('Predeterminado', ''))
   devices.forEach((device, i) => {
-    select.add(createOption(device.label || `Micrófono ${i + 1}`, device.deviceId, OPTION_CLASS))
+    select.add(createOption(device.label || `Micrófono ${i + 1}`, device.deviceId))
   })
 }
 
 export type RecordState = 'idle' | 'listening'
 
-const RECORD_STATES: Record<RecordState, { dot: string, label: string, labelClass: string, keyClass: string }> = {
+const RECORD_BUTTON = 'flex items-center gap-2.5 rounded-full border pl-4 pr-2.5 py-2 text-[13px] cursor-pointer transition-colors'
+const RECORD_KEY = 'font-mono text-[11px] border rounded-[5px] px-[7px] py-0.5'
+
+const RECORD_STATES: Record<RecordState, { button: string, dot: string, label: string, key: string }> = {
   idle: {
-    dot: 'bg-zinc-500', label: 'En pausa', labelClass: 'text-zinc-400',
-    keyClass: 'text-zinc-500 bg-white/[0.04]',
+    button: 'bg-[#1f1f23] border-vf-stroke text-vf-ink hover:bg-vf-edge',
+    dot: 'rounded-full', label: 'Grabar',
+    key: 'text-vf-dim bg-vf-rail border-vf-chip',
   },
   listening: {
-    dot: 'bg-rose-500 animate-pulse', label: 'Escuchando', labelClass: 'text-studio-heading',
-    keyClass: 'text-zinc-400 bg-white/[0.06]',
+    button: 'bg-[#2a1a1b] border-[#5a2c2e] text-[#f4d6d6]',
+    dot: 'rounded-sm animate-pulse', label: 'Detener',
+    key: 'text-[#c98a8a] bg-[#1f1415] border-[#4a2829]',
   },
 }
 
+// "01:05" for 65 seconds of recording
+export function formatElapsed(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(Math.floor(whole / 60))}:${pad(whole % 60)}`
+}
+
+// While listening the button shows the recording time in [data-rec-time]
 export function renderRecordButton(button: HTMLElement, state: RecordState) {
-  const { dot, label, labelClass, keyClass } = RECORD_STATES[state]
+  const { button: buttonClass, dot, label, key } = RECORD_STATES[state]
+  const time = state === 'listening'
+    ? `<span data-rec-time class="font-mono text-xs text-[#ef9a9a]">${formatElapsed(0)}</span>`
+    : ''
   button.dataset.state = state
+  button.className = `${RECORD_BUTTON} ${buttonClass}`
   button.innerHTML = `
-    <span class="w-2 h-2 rounded-full ${dot}"></span>
-    <span class="text-xs ${labelClass} font-medium tracking-wide">${label}</span>
-    <span class="text-[10px] font-mono ${keyClass} px-1.5 py-0.5 rounded border border-studio-border">Espacio</span>`
+    <span class="w-2 h-2 bg-vf-red ${dot}"></span>${label}${time}
+    <span class="${RECORD_KEY} ${key}">Espacio</span>`
 }
 
 // Space toggles recording unless the user is typing in a form control

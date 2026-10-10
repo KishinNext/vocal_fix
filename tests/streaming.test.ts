@@ -358,7 +358,7 @@ describe('TranscriptView', () => {
     view.grammar('1-1', 'The client said that')
     const review = panels.review.querySelector('p')!
     expect(review.querySelector('.line-through')?.textContent).toBe('say')
-    expect(review.querySelector('.text-emerald-400')?.textContent).toBe('said')
+    expect(review.querySelector('span:not(.line-through)')?.textContent).toBe('said')
     expect(review.textContent).toBe('The client say said that')
   })
 

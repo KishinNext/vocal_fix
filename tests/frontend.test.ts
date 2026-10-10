@@ -154,85 +154,6 @@ describe('initNavigation()', () => {
 // 2. Editor helpers (src/editor.ts)
 // ─────────────────────────────────────────────────────────────
 
-describe('fillModelSelect()', () => {
-  beforeEach(cleanDOM)
-
-  it('shows a disabled "No model found" option when the list is empty', async () => {
-    const { fillModelSelect } = await import('../src/editor')
-    const select = createEl('select')
-    fillModelSelect(select, [])
-    expect([...select.options].map(o => o.text)).toEqual(['No model found'])
-    expect(select.disabled).toBe(true)
-  })
-
-  it('lists files by short name, keeping the file name as value', async () => {
-    const { fillModelSelect } = await import('../src/editor')
-    const select = createEl('select')
-    select.disabled = true
-    fillModelSelect(select, ['ggml-base.bin', 'custom.gguf'])
-    expect([...select.options].map(o => [o.text, o.value])).toEqual([['Base', 'ggml-base.bin'], ['custom', 'custom.gguf']])
-    expect(select.disabled).toBe(false)
-  })
-
-  it('replaces previous options when called again', async () => {
-    const { fillModelSelect } = await import('../src/editor')
-    const select = createEl('select')
-    fillModelSelect(select, ['ggml-base.bin'])
-    fillModelSelect(select, ['ggml-small.bin'])
-    expect(select.options).toHaveLength(1)
-  })
-  it('selects the model saved in Settings', async () => {
-    const { fillModelSelect } = await import('../src/editor')
-    const select = createEl('select')
-    fillModelSelect(select, ['ggml-base.bin', 'ggml-small.en.bin'], 'ggml-small.en.bin')
-    expect(select.value).toBe('ggml-small.en.bin')
-  })
-
-  it('keeps the first file when the saved model is not in the list', async () => {
-    const { fillModelSelect } = await import('../src/editor')
-    const select = createEl('select')
-    fillModelSelect(select, ['ggml-base.bin', 'ggml-small.bin'], 'deleted.bin')
-    expect(select.value).toBe('ggml-base.bin')
-  })
-})
-
-describe('bindModelSelect()', () => {
-  beforeEach(cleanDOM)
-
-  async function mount() {
-    const { fillModelSelect, bindModelSelect } = await import('../src/editor')
-    const select = createEl('select')
-    fillModelSelect(select, ['a.gguf', 'b.gguf'], 'a.gguf')
-    return { select, bindModelSelect }
-  }
-
-  const choose = (select: HTMLSelectElement, value: string) => {
-    select.value = value
-    select.dispatchEvent(new Event('change'))
-  }
-
-  it('activates the chosen model', async () => {
-    const { select, bindModelSelect } = await mount()
-    const activate = vi.fn().mockResolvedValue(undefined)
-    bindModelSelect(select, activate, vi.fn())
-    choose(select, 'b.gguf')
-    expect(select.disabled).toBe(true)
-    await vi.waitFor(() => expect(select.disabled).toBe(false))
-    expect(activate).toHaveBeenCalledWith('b.gguf')
-    expect(select.value).toBe('b.gguf')
-  })
-
-  it('goes back to the previous model and reports the error when activation fails', async () => {
-    const { select, bindModelSelect } = await mount()
-    const onError = vi.fn()
-    bindModelSelect(select, vi.fn().mockRejectedValue(new Error('El modelo no está descargado: b.gguf')), onError)
-    choose(select, 'b.gguf')
-    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('El modelo no está descargado: b.gguf'))
-    expect(select.value).toBe('a.gguf')
-    expect(select.disabled).toBe(false)
-  })
-})
-
 describe('fillMicrophoneSelect()', () => {
   beforeEach(cleanDOM)
 
@@ -253,8 +174,8 @@ describe('renderRecordButton()', () => {
   beforeEach(cleanDOM)
 
   it.each([
-    ['idle', 'En pausa'],
-    ['listening', 'Escuchando'],
+    ['idle', 'Grabar'],
+    ['listening', 'Detener'],
   ] as const)('renders the %s state', async (state, label) => {
     const { renderRecordButton } = await import('../src/editor')
     const btn = createEl('button')
@@ -270,6 +191,43 @@ describe('renderRecordButton()', () => {
     expect(btn.querySelector('.animate-pulse')).not.toBeNull()
     renderRecordButton(btn, 'idle')
     expect(btn.querySelector('.animate-pulse')).toBeNull()
+  })
+})
+
+describe('formatElapsed()', () => {
+  it.each([
+    [0, '00:00'],
+    [9.9, '00:09'],
+    [65, '01:05'],
+    [600, '10:00'],
+  ])('formats %s seconds as %s', async (seconds, expected) => {
+    // Arrange
+    const { formatElapsed } = await import('../src/editor')
+
+    // Act
+    const text = formatElapsed(seconds)
+
+    // Assert
+    expect(text).toBe(expected)
+  })
+})
+
+describe('renderRecordButton() timer', () => {
+  beforeEach(cleanDOM)
+
+  it('shows the recording time only while listening', async () => {
+    // Arrange
+    const { renderRecordButton } = await import('../src/editor')
+    const btn = createEl('button')
+
+    // Act
+    renderRecordButton(btn, 'listening')
+    const whileListening = btn.querySelector('[data-rec-time]')?.textContent
+    renderRecordButton(btn, 'idle')
+
+    // Assert
+    expect(whileListening).toBe('00:00')
+    expect(btn.querySelector('[data-rec-time]')).toBeNull()
   })
 })
 
@@ -351,7 +309,7 @@ describe('Settings pages structure', () => {
   pages.forEach(page => {
     it(`${page} contains a back button with data-path="editor"`, () => {
       const content = readRepoFile(page)
-      expect(content).toContain('arrow_back')
+      expect(content).toContain('Volver al editor')
       expect(content).toContain('data-path="editor"')
     })
 
@@ -408,12 +366,14 @@ describe('index.html structure', () => {
     expect(content).toContain('id="copyBtn"')
   })
 
-  it('has #stt-model-select', () => {
-    expect(content).toContain('id="stt-model-select"')
+  it('has the models pill routed to the models page', () => {
+    expect(content).toMatch(/id="models-pill"[^>]*data-path="modelos-locales"/)
+    expect(content).toContain('id="stt-model-label"')
+    expect(content).toContain('id="llm-model-label"')
   })
 
-  it('has #llm-model-select', () => {
-    expect(content).toContain('id="llm-model-select"')
+  it('has #tone-select', () => {
+    expect(content).toContain('id="tone-select"')
   })
 
   it('has #mic-select', () => {
