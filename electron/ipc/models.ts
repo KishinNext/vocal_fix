@@ -3,6 +3,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { aiManager } from '../ai'
+import { getEngineStatus, onEngineStatus } from '../engineStatus'
 import {
   LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile,
   type CatalogModel, type ModelKind,
@@ -10,6 +11,7 @@ import {
 import { downloadModel, getDownloadProgress } from '../modelDownloader'
 import { getModelsDir, getSettings, updateSettings } from '../settingsStore'
 import { whisperServer } from '../whisperServer'
+import { getMainWindow } from '../windows'
 
 function listModelFiles(modelsDir: string): string[] {
   if (!fs.existsSync(modelsDir)) return []
@@ -49,6 +51,12 @@ function modelStatuses(
 }
 
 export function registerModelHandlers() {
+  ipcMain.handle('get-engine-status', () => getEngineStatus())
+  onEngineStatus(status => {
+    const mainWindow = getMainWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('engine-status', status)
+  })
+
   ipcMain.handle('get-models', () => {
     try {
       const files = listModelFiles(getModelsDir())

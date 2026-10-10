@@ -231,6 +231,143 @@ describe('renderRecordButton() timer', () => {
   })
 })
 
+describe('renderRecordButton() while the speech model loads', () => {
+  beforeEach(cleanDOM)
+
+  it('disables the button and says why', async () => {
+    // Arrange
+    const { renderRecordButton } = await import('../src/editor')
+    const btn = createEl('button')
+
+    // Act
+    renderRecordButton(btn, 'loading')
+
+    // Assert
+    expect(btn.disabled).toBe(true)
+    expect(btn.textContent).toContain('Cargando modelo')
+  })
+
+  it('enables it again once the model is ready', async () => {
+    // Arrange
+    const { renderRecordButton } = await import('../src/editor')
+    const btn = createEl('button')
+    renderRecordButton(btn, 'loading')
+
+    // Act
+    renderRecordButton(btn, 'idle')
+
+    // Assert
+    expect(btn.disabled).toBe(false)
+  })
+})
+
+describe('restingRecordState()', () => {
+  const info = (state: 'loading' | 'ready' | 'missing' | 'error') => ({ state, message: '' })
+
+  it.each([
+    ['ready', 'ready', 'idle'],
+    ['ready', 'loading', 'loading'],
+    ['loading', 'ready', 'loading'],
+    ['ready', 'missing', 'unavailable'],
+    ['error', 'ready', 'unavailable'],
+    ['loading', 'missing', 'unavailable'],
+  ] as const)('whisper %s + LLM %s -> %s', async (whisper, llm, expected) => {
+    // Arrange
+    const { restingRecordState } = await import('../src/editor')
+
+    // Act
+    const state = restingRecordState({ whisper: info(whisper), llm: info(llm) })
+
+    // Assert
+    expect(state).toBe(expected)
+  })
+
+  it('disables the record button when a model is unavailable', async () => {
+    // Arrange
+    const { renderRecordButton } = await import('../src/editor')
+    const btn = createEl('button')
+
+    // Act
+    renderRecordButton(btn, 'unavailable')
+
+    // Assert
+    expect(btn.disabled).toBe(true)
+    expect(btn.textContent).toContain('Modelo no disponible')
+  })
+})
+
+describe('renderEngineDot()', () => {
+  beforeEach(cleanDOM)
+
+  it.each([
+    ['loading', 'cargando…'],
+    ['ready', 'listo'],
+    ['missing', 'sin descargar'],
+    ['error', 'error'],
+  ] as const)('marks a %s model and describes it', async (state, label) => {
+    // Arrange
+    const { renderEngineDot } = await import('../src/editor')
+    const dot = createEl('span')
+
+    // Act
+    const tip = renderEngineDot(dot, 'Transcripción', { state, message: '' })
+
+    // Assert
+    expect(dot.dataset.state).toBe(state)
+    expect(tip).toBe(`Transcripción: ${label}`)
+  })
+
+  it('includes the reason a model is unusable', async () => {
+    // Arrange
+    const { renderEngineDot } = await import('../src/editor')
+    const dot = createEl('span')
+
+    // Act
+    const tip = renderEngineDot(dot, 'Motor lingüístico', { state: 'missing', message: 'Modelo no descargado' })
+
+    // Assert
+    expect(tip).toBe('Motor lingüístico: sin descargar (Modelo no descargado)')
+  })
+})
+
+describe('level meter', () => {
+  beforeEach(cleanDOM)
+
+  it.each([
+    [0, 0],
+    [0.01, 0.22],
+    [0.25, 1],
+    [1, 1],
+  ])('maps an RMS of %s to a level of %s', async (rms, expected) => {
+    // Arrange
+    const { levelFromRms } = await import('../src/editor')
+
+    // Act
+    const level = levelFromRms(rms)
+
+    // Assert
+    expect(level).toBeCloseTo(expected, 2)
+  })
+
+  it('shows the newest level on the right and flattens on reset', async () => {
+    // Arrange
+    const { createLevelMeter } = await import('../src/editor')
+    const container = createEl('div')
+    const meter = createLevelMeter(container)
+    const heights = () => [...container.children].map(bar => (bar as HTMLElement).style.height)
+
+    // Act
+    meter.push(0.25)
+    const whileSpeaking = heights()
+    meter.reset()
+
+    // Assert
+    expect(whileSpeaking.at(-1)).toBe('20px')
+    expect(whileSpeaking.at(-2)).toBe('3px')
+    expect(new Set(heights())).toEqual(new Set(['3px']))
+  })
+})
+
 describe('isTypingTarget()', () => {
   it('is true for form controls and false otherwise', async () => {
     const { isTypingTarget } = await import('../src/editor')

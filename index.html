@@ -10,7 +10,7 @@
 <div></div>
 <div class="flex justify-center">
 <button id="models-pill" type="button" data-path="modelos-locales" style="-webkit-app-region: no-drag;" title="Cambiar modelos" class="flex items-center gap-2.5 bg-vf-field border border-vf-rim rounded-[7px] px-3 py-[5px] text-[12.5px] text-vf-soft cursor-pointer transition-colors hover:bg-vf-raised hover:text-vf-ink">
-<span id="stt-model-label">…</span><span class="text-[#4a4a50]">·</span><span id="llm-model-label">…</span><span class="text-vf-faint text-[10px]">▾</span>
+<span id="stt-dot" class="w-1.5 h-1.5 rounded-full bg-vf-faint"></span><span id="stt-model-label">…</span><span class="text-[#4a4a50] mx-0.5">·</span><span id="llm-dot" class="w-1.5 h-1.5 rounded-full bg-vf-faint"></span><span id="llm-model-label">…</span><span class="text-vf-faint text-[10px]">▾</span>
 </button>
 </div>
 <div class="flex justify-end">
@@ -28,7 +28,7 @@
 </section>
 
 <section class="bg-vf-panel border border-vf-edge rounded-[10px] flex flex-col min-h-[280px] min-w-0">
-<div class="h-12 shrink-0 flex items-center gap-2 px-5 border-b border-vf-line text-[11.5px] font-medium tracking-[.06em] text-vf-mute"><span class="w-1.5 h-1.5 rounded-full bg-vf-amber"></span>CORRECCIÓN</div>
+<div class="h-12 shrink-0 flex items-center gap-2 px-5 border-b border-vf-line text-[11.5px] font-medium tracking-[.06em] text-vf-mute">CORRECCIÓN</div>
 <div id="grammar-review-container" class="flex-1 min-h-0 overflow-auto px-5 py-4 text-base leading-7 text-vf-ink select-text">
 <p class="text-sm text-vf-ghost select-none">Los errores corregidos aparecerán resaltados.</p>
 </div>
@@ -36,7 +36,7 @@
 
 <section class="bg-vf-panel border border-vf-edge rounded-[10px] flex flex-col min-h-[280px] min-w-0">
 <div class="h-12 shrink-0 flex items-center justify-between gap-2 pl-5 pr-3 border-b border-vf-line">
-<div class="flex items-center gap-2 text-[11.5px] font-medium tracking-[.06em] text-vf-mute"><span class="w-1.5 h-1.5 rounded-full bg-vf-green"></span>SUGERENCIA</div>
+<div class="flex items-center gap-2 text-[11.5px] font-medium tracking-[.06em] text-vf-mute">SUGERENCIA</div>
 <select id="tone-select" title="Tono de la sugerencia" class="vf-select"></select>
 </div>
 <div id="primary-recommendation" class="flex-1 min-h-0 overflow-auto px-5 py-4 text-base leading-7 text-vf-bright select-text">
@@ -55,6 +55,7 @@
 <select id="mic-select" title="Micrófono" class="vf-select py-1.5 text-[12.5px] max-w-[220px] min-w-0">
 <option value="">Predeterminado</option>
 </select>
+<div id="mic-level" title="Nivel del micrófono" class="flex items-center gap-[3px] h-5 ml-3 shrink-0"></div>
 </div>
 <button id="recordToggleBtn" type="button" data-state="idle"></button>
 <div class="flex items-center justify-end">

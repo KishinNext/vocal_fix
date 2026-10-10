@@ -6,6 +6,7 @@ import path from 'path'
 import { createRequire } from 'module'
 import { findCatalogModel } from './modelCatalog'
 import { getModelsDir, getSettings } from './settingsStore'
+import { setEngineState, trackLoad } from './engineStatus'
 import { cleanTranscript } from './transcript'
 import { encodeWav } from './wav'
 import { forgetServer, killOrphanedServer, rememberServer } from './whisperOrphan'
@@ -82,7 +83,8 @@ class WhisperServer {
     const config = `${modelPath}|${lang}`
     if (this.process && config === this.config) return this.url
 
-    this.starting = this.start(modelPath, lang, config).finally(() => { this.starting = null })
+    this.starting = trackLoad('whisper', modelPath, () => this.start(modelPath, lang, config))
+      .finally(() => { this.starting = null })
     await this.starting
     return this.url
   }
@@ -110,7 +112,10 @@ class WhisperServer {
       this.stderrTail = (this.stderrTail + chunk).slice(-STDERR_TAIL_CHARS)
     })
     child.on('exit', () => {
-      if (this.process === child) this.process = null
+      if (this.process !== child) return
+      // Not stopped by us: it crashed (stop() clears this.process first)
+      this.process = null
+      setEngineState('whisper', 'error', 'El servidor de Whisper se detuvo')
     })
 
     this.process = child
