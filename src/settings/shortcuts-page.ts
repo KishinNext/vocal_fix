@@ -1,4 +1,4 @@
-import { acceleratorToLabels, eventToAccelerator } from './accelerator'
+import { acceleratorToLabels, eventToAccelerator, modifierHint } from './accelerator'
 import { byId, errorMessage, escapeHtml, showStatus } from './shared'
 
 let currentShortcut = ''
@@ -46,6 +46,9 @@ async function applyShortcut(accelerator: string) {
 }
 
 export async function initShortcutsPage() {
+  const hint = byId('modifier-hint')
+  if (hint) hint.textContent = modifierHint()
+
   byId('record-shortcut')?.addEventListener('click', event => {
     const action = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]')?.dataset.action
     if (action === 'change') setCapturing(true)

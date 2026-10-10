@@ -11,6 +11,9 @@ const NAMED_KEYS: Record<string, string> = {
   Home: 'Home', End: 'End', PageUp: 'PageUp', PageDown: 'PageDown',
 }
 
+// Electron accepts "Command" only on macOS; the Windows key is "Super"
+const IS_MAC = /mac/i.test(navigator.platform)
+
 type KeyLike = Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>
 
 function keyFromCode(code: string): string | null {
@@ -22,13 +25,13 @@ function keyFromCode(code: string): string | null {
 
 // Returns null while only modifiers are held, or for unsupported/modifier-less combos
 // (a global shortcut without a modifier would hijack normal typing system-wide).
-export function eventToAccelerator(event: KeyLike): string | null {
+export function eventToAccelerator(event: KeyLike, mac = IS_MAC): string | null {
   if (MODIFIER_CODES.has(event.code)) return null
   const key = keyFromCode(event.code)
   if (!key) return null
 
   const parts: string[] = []
-  if (event.metaKey) parts.push('Command')
+  if (event.metaKey) parts.push(mac ? 'Command' : 'Super')
   if (event.ctrlKey) parts.push('Control')
   if (event.altKey) parts.push('Alt')
   if (event.shiftKey) parts.push('Shift')
@@ -37,13 +40,27 @@ export function eventToAccelerator(event: KeyLike): string | null {
   return [...parts, key].join('+')
 }
 
-const LABELS: Record<string, string> = {
-  CommandOrControl: '⌘', Command: '⌘', Cmd: '⌘', Control: '⌃', Ctrl: '⌃',
-  Alt: '⌥', Option: '⌥', Shift: '⇧', Space: 'Espacio',
-  Up: '↑', Down: '↓', Left: '←', Right: '→', Enter: '↵',
+const KEY_LABELS: Record<string, string> = {
+  Space: 'Espacio', Up: '↑', Down: '↓', Left: '←', Right: '→', Enter: '↵',
 }
 
-export function acceleratorToLabels(accelerator: string): string[] {
+const MAC_LABELS: Record<string, string> = {
+  CommandOrControl: '⌘', Command: '⌘', Cmd: '⌘', Super: '⌘', Control: '⌃', Ctrl: '⌃',
+  Alt: '⌥', Option: '⌥', Shift: '⇧',
+}
+
+const PC_LABELS: Record<string, string> = {
+  CommandOrControl: 'Ctrl', Control: 'Ctrl', Ctrl: 'Ctrl', Command: 'Win', Cmd: 'Win', Super: 'Win',
+  Alt: 'Alt', Option: 'Alt', Shift: 'Shift',
+}
+
+export function acceleratorToLabels(accelerator: string, mac = IS_MAC): string[] {
   if (!accelerator) return []
-  return accelerator.split('+').map(part => LABELS[part] ?? part)
+  const modifiers = mac ? MAC_LABELS : PC_LABELS
+  return accelerator.split('+').map(part => modifiers[part] ?? KEY_LABELS[part] ?? part)
+}
+
+// The modifiers a shortcut can use, as shown in the hint under the shortcuts table
+export function modifierHint(mac = IS_MAC): string {
+  return mac ? '⌘ ⌥ ⌃ ⇧' : 'Ctrl, Alt, Shift o Win'
 }
