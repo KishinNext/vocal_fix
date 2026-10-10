@@ -1,3 +1,4 @@
+import { endsSentence } from './sentenceEnd'
 import { DEFAULT_SEGMENTER_OPTIONS, SpeechSegmenter, type SegmentEvent } from './speechSegmenter'
 
 // One recording: cuts the audio into utterances and pushes each one through
@@ -31,6 +32,9 @@ export class StreamSession {
   private readonly session = ++sessionCount
   private finals: SegmentEvent[] = []
   private partial: SegmentEvent | null = null  // only the latest one is worth transcribing
+  private pause: SegmentEvent | null = null
+  // Transcript of the utterance at its last pause; reused if it ends without more speech
+  private atPause: { segment: number, text: string } | null = null
   private lastFinalSegment = 0
   private pumping: Promise<void> | null = null
   private reviews: Promise<void> = Promise.resolve()
@@ -69,6 +73,9 @@ export class StreamSession {
       if (event.type === 'final') {
         this.finals.push(event)
         this.lastFinalSegment = event.segment
+      } else if (event.type === 'pause') {
+        this.pause = event
+        this.partial = null // the pause holds everything that partial had
       } else {
         this.partial = event
       }
@@ -86,6 +93,12 @@ export class StreamSession {
         const final = this.finals.shift()
         if (final) {
           await this.transcribeFinal(final)
+          continue
+        }
+        const pause = this.pause
+        if (pause) {
+          this.pause = null
+          if (pause.segment > this.lastFinalSegment) await this.transcribePause(pause)
           continue
         }
         const partial = this.partial
@@ -116,9 +129,23 @@ export class StreamSession {
     }
   }
 
+  // The speaker paused: a finished sentence (or noise) ends the utterance right away,
+  // anything else is shown and left open in case they are only thinking.
+  private async transcribePause(event: SegmentEvent) {
+    const text = await this.transcribe(event)
+    this.atPause = { segment: event.segment, text }
+    if (!text || endsSentence(text)) {
+      this.enqueue(this.segmenter.endIfSettled(event.segment))
+    }
+    if (event.segment > this.lastFinalSegment && text) {
+      this.deps.send('stream-partial', { id: this.id(event.segment), text })
+    }
+  }
+
   private async transcribeFinal(event: SegmentEvent) {
     const id = this.id(event.segment)
-    const text = event.audio.length > 0 ? await this.transcribe(event) : ''
+    const atPause = event.settled && this.atPause?.segment === event.segment ? this.atPause : null
+    const text = atPause ? atPause.text : event.audio.length > 0 ? await this.transcribe(event) : ''
     this.deps.send('stream-final', { id, text })
     if (!text) return
 
