@@ -7,7 +7,7 @@ import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, PROFILES, sanitizeSettings } from '../electron/settingsSchema'
-import { buildGrammarPrompt, buildSystemPrompt } from '../electron/prompt'
+import { DEFAULT_PROMPTS, buildGrammarPrompt, buildSystemPrompt, promptExamples, wrapTranscript } from '../electron/prompt'
 import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile, modelDisplayName, recommendedModels,
 } from '../electron/modelCatalog'
 import { acceleratorToLabels, eventToAccelerator, modifierHint } from '../src/settings/accelerator'
@@ -77,7 +77,7 @@ describe('buildGrammarPrompt()', () => {
   it('only fixes errors and ignores tone and intervention', () => {
     const casual = buildGrammarPrompt({ ...DEFAULT_SETTINGS, profile: 'conversational', intervention: 'creative' })
     const formal = buildGrammarPrompt({ ...DEFAULT_SETTINGS, profile: 'business', intervention: 'minimal' })
-    expect(casual).toContain('do not rephrase')
+    expect(casual).toContain('Change as little as possible')
     expect(casual).toEqual(formal)
   })
 
@@ -524,5 +524,47 @@ describe('downloadModel() retries', () => {
 
     // Assert
     expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
+  })
+})
+
+describe('custom prompts', () => {
+  const custom = sanitizeSettings({ prompts: { grammar: '  Corrige solo la ortografía.  ', natural: '' } })
+
+  it('keeps the trimmed text and falls back to the built-in one when empty', () => {
+    // Assert
+    expect(custom.prompts).toEqual({ grammar: 'Corrige solo la ortografía.', natural: '' })
+    expect(buildSystemPrompt(custom)).toContain(DEFAULT_PROMPTS.natural)
+  })
+
+  it('replaces the built-in instructions and still appends the rules', () => {
+    // Act
+    const prompt = buildGrammarPrompt(custom)
+
+    // Assert
+    expect(prompt.startsWith('Corrige solo la ortografía.')).toBe(true)
+    expect(prompt).not.toContain(DEFAULT_PROMPTS.grammar)
+    expect(prompt).toContain('Remove filler words')
+  })
+
+  it('uses the built-in examples only with the built-in instructions', () => {
+    // Act
+    const withCustom = promptExamples('grammar', custom)
+    const withDefault = promptExamples('natural', custom)
+
+    // Assert
+    expect(withCustom).toEqual([])
+    expect(withDefault.length).toBeGreaterThan(0)
+    expect(withDefault.every(example => example.transcript.startsWith('Transcript in '))).toBe(true)
+  })
+
+  it.each([
+    ['What is the capital of France?', 'Transcript in English: What is the capital of France?'],
+    ['¿Dónde está la oficina?', 'Transcript in Spanish: ¿Dónde está la oficina?'],
+  ])('labels %j as a transcript in its language', (text, expected) => {
+    // Act
+    const wrapped = wrapTranscript(text)
+
+    // Assert
+    expect(wrapped).toBe(expected)
   })
 })

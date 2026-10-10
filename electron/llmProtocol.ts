@@ -2,7 +2,10 @@
 
 export type LlmRequest =
   | { id: number, type: 'load', modelPath: string }
-  | { id: number, type: 'prompt', modelPath: string, systemPrompt: string, text: string, temperature: number }
+  | {
+      id: number, type: 'prompt', modelPath: string, systemPrompt: string, text: string, temperature: number,
+      examples: { transcript: string, reply: string }[]  // shown to the model as earlier turns
+    }
 
 export interface LlmResponse {
   id: number

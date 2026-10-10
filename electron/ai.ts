@@ -4,8 +4,9 @@ import { utilityProcess, type UtilityProcess } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { trackLoad } from './engineStatus'
 import type { LlmRequest, LlmResponse } from './llmProtocol'
-import { buildGrammarPrompt, buildSystemPrompt } from './prompt'
+import { buildGrammarPrompt, buildSystemPrompt, promptExamples, wrapTranscript, type PromptExample } from './prompt'
 import { getModelsDir, getSettings } from './settingsStore'
 
 // Bundled next to main.js by vite-plugin-electron
@@ -22,16 +23,18 @@ class AIManager {
 
   // Loads (or switches to) the LLM selected in settings
   async ensureLlama(): Promise<void> {
-    await this.request({ type: 'load', modelPath: this.modelPath() })
+    const modelPath = this.modelPath()
+    await trackLoad('llm', modelPath, () => this.request({ type: 'load', modelPath }))
   }
 
   correctGrammar(text: string): Promise<string> {
-    return this.prompt(text, buildGrammarPrompt(getSettings()), GRAMMAR_TEMPERATURE)
+    const settings = getSettings()
+    return this.prompt(text, buildGrammarPrompt(settings), promptExamples('grammar', settings), GRAMMAR_TEMPERATURE)
   }
 
   rewriteNatural(text: string): Promise<string> {
     const settings = getSettings()
-    return this.prompt(text, buildSystemPrompt(settings), settings.temperature)
+    return this.prompt(text, buildSystemPrompt(settings), promptExamples('natural', settings), settings.temperature)
   }
 
   stop() {
@@ -39,8 +42,10 @@ class AIManager {
     this.worker = null
   }
 
-  private prompt(text: string, systemPrompt: string, temperature: number) {
-    return this.request({ type: 'prompt', modelPath: this.modelPath(), systemPrompt, text, temperature })
+  private prompt(text: string, systemPrompt: string, examples: PromptExample[], temperature: number) {
+    return this.request({
+      type: 'prompt', modelPath: this.modelPath(), systemPrompt, examples, text: wrapTranscript(text), temperature,
+    })
   }
 
   private modelPath() {

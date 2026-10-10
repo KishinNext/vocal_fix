@@ -9,6 +9,12 @@ export interface GrammarRules {
   normalizeContractions: boolean
 }
 
+// Instructions written by the user; '' uses the built-in ones (see prompt.ts)
+export interface CustomPrompts {
+  grammar: string
+  natural: string
+}
+
 export interface AppSettings {
   modelsPath?: string
   whisperModel: string
@@ -19,6 +25,7 @@ export interface AppSettings {
   profile: Profile
   rules: GrammarRules
   glossary: string[]
+  prompts: CustomPrompts
   recordShortcut: string // Electron accelerator; '' disables it
 }
 
@@ -41,11 +48,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
   profile: 'conversational',
   rules: { removeFillers: true, normalizeContractions: false },
   glossary: [],
+  prompts: { grammar: '', natural: '' },
   recordShortcut: 'CommandOrControl+Shift+Space',
 }
 
 const MAX_GLOSSARY_TERMS = 100
 const MAX_TERM_LENGTH = 60
+const MAX_PROMPT_LENGTH = 4000
 
 function pick<T extends string>(value: unknown, allowed: T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback
@@ -55,6 +64,10 @@ function pick<T extends string>(value: unknown, allowed: T[], fallback: T): T {
 export function sanitizeSettings(input: unknown, base: AppSettings = DEFAULT_SETTINGS): AppSettings {
   const raw = (input && typeof input === 'object' ? input : {}) as Record<string, any>
   const rules = (raw.rules && typeof raw.rules === 'object' ? raw.rules : {}) as Record<string, unknown>
+
+  const prompts = (raw.prompts && typeof raw.prompts === 'object' ? raw.prompts : {}) as Record<string, unknown>
+  const prompt = (key: keyof CustomPrompts) =>
+    typeof prompts[key] === 'string' ? prompts[key].trim().slice(0, MAX_PROMPT_LENGTH) : base.prompts[key]
 
   const temperature = Number(raw.temperature)
   const glossary = Array.isArray(raw.glossary)
@@ -83,6 +96,7 @@ export function sanitizeSettings(input: unknown, base: AppSettings = DEFAULT_SET
         : base.rules.normalizeContractions,
     },
     glossary,
+    prompts: { grammar: prompt('grammar'), natural: prompt('natural') },
     recordShortcut: typeof raw.recordShortcut === 'string' ? raw.recordShortcut : base.recordShortcut,
   }
 }

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { buildSystemPrompt } from '../prompt'
+import { DEFAULT_PROMPTS, buildGrammarPrompt, buildSystemPrompt, type PromptsResponse } from '../prompt'
 import type { AppSettings } from '../settingsSchema'
 import { getSettings, updateSettings } from '../settingsStore'
 import { applyRecordShortcut } from '../shortcuts'
@@ -9,7 +9,7 @@ import { getMainWindow } from '../windows'
 // Renderer-editable settings. Models and the shortcut have dedicated handlers
 // because changing them has side effects (loading a model, registering a hotkey).
 const EDITABLE_KEYS: (keyof AppSettings)[] = [
-  'language', 'intervention', 'temperature', 'profile', 'rules', 'glossary',
+  'language', 'intervention', 'temperature', 'profile', 'rules', 'glossary', 'prompts',
 ]
 
 function toggleRecordingInEditor() {
@@ -40,7 +40,13 @@ export function registerSettingsHandlers() {
     return settings
   })
 
-  ipcMain.handle('get-system-prompt', () => buildSystemPrompt(getSettings()))
+  ipcMain.handle('get-prompts', (): PromptsResponse => {
+    const settings = getSettings()
+    return {
+      defaults: DEFAULT_PROMPTS,
+      sent: { grammar: buildGrammarPrompt(settings), natural: buildSystemPrompt(settings) },
+    }
+  })
 
   ipcMain.handle('set-record-shortcut', (_event, accelerator: string) => {
     if (!applyRecordShortcut(accelerator, toggleRecordingInEditor)) {
