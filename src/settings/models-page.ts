@@ -1,134 +1,212 @@
-import type { ModelKind } from '../../electron/modelCatalog'
+import { recommendedModels, type ModelKind } from '../../electron/modelCatalog'
 import { DEFAULT_TEMPERATURE, type AppSettings, type Intervention } from '../../electron/settingsSchema'
 import type { ModelCatalogResponse, ModelStatus } from '../global'
 import { byId, errorMessage, escapeHtml, formatBytes, memoryFit, showStatus, type MemoryFit } from './shared'
 
-const INTERVENTION_ACTIVE = 'bg-surface-container-high text-primary'
-const INTERVENTION_IDLE = 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+// A model family is one model in up to two variants: multilingual and English-only.
+type Variant = 'multi' | 'en'
+
+interface Family {
+  name: string
+  variants: Partial<Record<Variant, ModelStatus>>
+}
+
+const KINDS: ModelKind[] = ['whisper', 'llm']
+const TIERS = ['Rápido', 'Equilibrado', 'Máxima calidad']
+const FIT_LABELS: Record<MemoryFit, string> = { ok: 'Aceptable', heavy: 'Exigente' }
+
+const SEGMENT = 'rounded px-2 py-[3px] text-[11px] cursor-pointer transition-colors'
+const SEGMENT_ACTIVE = 'bg-vf-chip text-vf-ink'
+const SEGMENT_IDLE = 'text-vf-low hover:text-vf-ink'
 
 let catalog: ModelCatalogResponse | null = null
 let settings: AppSettings | null = null
 const busyFiles = new Set<string>()
+// Variant picked with the Multi/EN switch, by family name
+const pickedVariants = new Map<string, Variant>()
 
-function modelLabel(model: ModelStatus): string {
-  return model.englishOnly && model.kind === 'whisper' ? `${model.name} (EN)` : model.name
+const isInUse = (model: ModelStatus) => model.active && model.downloaded
+const variantOf = (model: ModelStatus): Variant => (model.englishOnly ? 'en' : 'multi')
+const modelsOf = (kind: ModelKind) => (catalog ? (kind === 'whisper' ? catalog.whisper : catalog.llm) : [])
+
+function families(kind: ModelKind): Family[] {
+  const byName = new Map<string, Family>()
+  for (const model of modelsOf(kind)) {
+    const family = byName.get(model.name) ?? { name: model.name, variants: {} }
+    family.variants[variantOf(model)] = model
+    byName.set(model.name, family)
+  }
+  return [...byName.values()]
 }
 
-function renderAction(model: ModelStatus): string {
-  if (model.active && model.downloaded) {
-    return '<span class="material-symbols-outlined text-[18px] text-primary">check</span>'
-  }
+// The variant shown for a family: the one picked, else the one in use, else multilingual
+function shown(family: Family): ModelStatus {
+  const { multi, en } = family.variants
+  const picked = pickedVariants.get(family.name)
+  if (picked && family.variants[picked]) return family.variants[picked]
+  if (en && isInUse(en)) return en
+  return (multi ?? en)!
+}
+
+function findModel(file: string): ModelStatus | undefined {
+  return catalog ? [...catalog.whisper, ...catalog.llm].find(m => m.file === file) : undefined
+}
+
+const progressPercent = (model: ModelStatus) =>
+  `${model.progress ? Math.floor((model.progress.received / model.progress.total) * 100) : 0}%`
+
+function renderStatus(model: ModelStatus): string {
+  if (isInUse(model)) return '<span class="text-xs text-vf-green">En uso</span>'
   if (model.progress) {
-    const pct = Math.floor((model.progress.received / model.progress.total) * 100)
-    return `<span class="font-label-xs text-label-xs text-primary tabular-nums">${pct}%</span>`
-  }
-  if (busyFiles.has(model.file)) {
-    return '<span class="font-label-xs text-label-xs text-outline">Cargando…</span>'
-  }
-  if (model.downloaded) {
-    return `<button type="button" data-action="activate" data-file="${escapeHtml(model.file)}"
-      class="px-3 py-1 rounded bg-surface-container-highest hover:bg-surface-bright text-on-surface-variant hover:text-on-surface font-label-xs text-label-xs transition-colors">Activar</button>`
-  }
-  return `<button type="button" data-action="download" data-file="${escapeHtml(model.file)}"
-    class="px-2.5 py-1 rounded bg-surface-container-highest text-primary hover:bg-primary hover:text-on-primary font-label-xs text-label-xs transition-colors flex items-center gap-1">
-      <span class="material-symbols-outlined text-[13px]">download</span><span>Descargar</span>
-    </button>`
-}
-
-const FIT_CHIPS: Record<MemoryFit, { label: string, classes: string, title: string }> = {
-  light: { label: 'Fluido', classes: 'text-secondary bg-secondary-container/40', title: 'Usa menos del 25% de la RAM de tu equipo' },
-  ok: { label: 'Aceptable', classes: 'text-primary bg-primary/10', title: 'Usa entre el 25% y el 50% de la RAM de tu equipo' },
-  heavy: { label: 'Exigente', classes: 'text-error bg-error-container/30', title: 'Usa más de la mitad de la RAM de tu equipo: puede ralentizar el sistema' },
-}
-
-function renderSpecs(model: ModelStatus): string {
-  const specs: string[] = []
-  if (model.sizeBytes) {
-    specs.push(`<span class="flex items-center gap-1" title="Espacio en disco">
-      <span class="material-symbols-outlined text-[13px]">hard_drive</span>Disco ${formatBytes(model.sizeBytes)}</span>`)
-  }
-  if (model.ramBytes) {
-    specs.push(`<span class="flex items-center gap-1" title="Memoria RAM aproximada mientras está cargado">
-      <span class="material-symbols-outlined text-[13px]">memory</span>RAM ~${formatBytes(model.ramBytes)}</span>`)
-  }
-  const fit = memoryFit(model.ramBytes, catalog?.totalMemBytes ?? 0)
-  if (fit) {
-    const chip = FIT_CHIPS[fit]
-    specs.push(`<span class="px-1.5 rounded ${chip.classes}" title="${chip.title}">${chip.label}</span>`)
-  }
-  return specs.join('')
-}
-
-function renderCard(model: ModelStatus): string {
-  const selected = model.active && model.downloaded
-  const badges = [
-    model.englishOnly ? '<span class="px-1.5 rounded bg-surface-container-highest text-outline font-label-xs text-label-xs">Solo inglés</span>' : '',
-    selected ? '<span class="px-1.5 rounded bg-secondary-container/50 text-secondary font-label-xs text-label-xs">En uso</span>' : '',
-    model.downloaded && !selected ? '<span class="px-1.5 rounded bg-surface-container-highest text-on-surface-variant font-label-xs text-label-xs">Descargado</span>' : '',
-  ].join('')
-  const progressBar = model.progress
-    ? `<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
-         <div class="h-full bg-primary rounded-full" style="width:${(model.progress.received / model.progress.total) * 100}%"></div>
-       </div>`
-    : ''
-
-  return `
-    <div class="p-3 rounded flex flex-col gap-2 ${selected ? 'bg-surface-container-high border border-primary/50 shadow-sm' : 'bg-surface-container border border-transparent'}">
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex items-center gap-2 flex-wrap min-w-0 pt-0.5">
-          <span class="font-body-sm text-body-sm font-medium text-on-surface break-all">${escapeHtml(model.name)}</span>${badges}
-        </div>
-        <div class="shrink-0">${renderAction(model)}</div>
-      </div>
-      <p class="font-label-xs text-label-xs text-on-surface-variant">${escapeHtml(model.note)}</p>
-      <div class="mt-auto flex items-center gap-3 flex-wrap font-label-xs text-label-xs text-outline">${renderSpecs(model)}</div>
-      ${progressBar}
+    const percent = progressPercent(model)
+    return `<div data-progress-file="${escapeHtml(model.file)}" class="flex items-center gap-2">
+      <div class="w-14 h-[3px] rounded-sm bg-vf-key overflow-hidden"><div data-bar class="h-full bg-vf-amber" style="width:${percent}"></div></div>
+      <span data-percent class="font-mono text-[11px] text-vf-dim tabular-nums">${percent}</span>
     </div>`
+  }
+  if (busyFiles.has(model.file)) return '<span class="text-xs text-vf-dim">Cargando…</span>'
+  const file = escapeHtml(model.file)
+  return model.downloaded
+    ? `<button type="button" data-action="activate" data-file="${file}" class="vf-btn-solid">Activar</button>`
+    : `<button type="button" data-action="download" data-file="${file}" class="vf-btn">Descargar</button>`
 }
 
-function renderSystemMemory() {
-  const el = byId('system-memory')
-  if (!el || !catalog?.totalMemBytes) return
-  // RAM is sold in binary units: 8 GiB reports 8.59e9 bytes but is "8 GB"
-  el.textContent = `Tu equipo tiene ${Math.round(catalog.totalMemBytes / 2 ** 30)} GB de RAM. ` +
-    'Fluido: menos del 25% · Aceptable: hasta el 50% · Exigente: más de la mitad. ' +
-    'Whisper y el motor lingüístico pueden estar cargados a la vez.'
+function renderFit(model: ModelStatus): string {
+  const fit = memoryFit(model.ramBytes, catalog?.totalMemBytes ?? 0)
+  return fit ? `<span class="text-vf-amber">· ${FIT_LABELS[fit]}</span>` : ''
 }
 
-function renderActiveBadge(el: HTMLElement | null, models: ModelStatus[]) {
-  if (!el) return
-  const active = models.find(m => m.active && m.downloaded)
-  el.className = `font-label-xs text-label-xs flex items-center gap-1.5 px-2 py-0.5 rounded shrink-0 ${
-    active ? 'text-secondary bg-secondary-container/40' : 'text-error bg-error-container/30'}`
-  el.innerHTML = active
-    ? `<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>${escapeHtml(modelLabel(active))}`
-    : '<span class="w-1.5 h-1.5 rounded-full bg-error"></span>Sin modelo descargado'
+function renderActive(kind: ModelKind): string {
+  const active = modelsOf(kind).find(isInUse)
+  if (!active) {
+    return `<div class="vf-label text-vf-amber">Sin modelo</div>
+      <div class="text-[13px] text-vf-dim">Descarga uno de los recomendados para empezar.</div>`
+  }
+  const specs = [
+    active.sizeBytes ? `Disco ${formatBytes(active.sizeBytes)}` : '',
+    active.ramBytes ? `RAM ~${formatBytes(active.ramBytes)}` : '',
+  ].filter(Boolean).join(' · ')
+  return `<div class="vf-label text-vf-green flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-vf-green"></span>En uso</div>
+    <div class="flex items-baseline gap-2 flex-wrap">
+      <span class="text-[17px] font-medium break-all">${escapeHtml(active.name)}</span>
+      ${active.englishOnly ? '<span class="text-xs text-vf-dim">Solo inglés</span>' : ''}
+    </div>
+    <div class="font-mono text-[11.5px] text-vf-faint">${specs}</div>`
 }
 
+function renderRecommendation(family: Family, tier: string): string {
+  const model = shown(family)
+  const englishVariant = model.englishOnly && family.variants.multi
+  return `<div class="bg-vf-rail border ${isInUse(model) ? 'border-[#6a5530]' : 'border-vf-rim'} rounded-[10px] px-4 py-3.5 flex flex-col gap-2.5">
+    <div class="text-[11.5px] font-medium text-vf-amber">${tier}</div>
+    <div class="flex flex-col gap-[3px] flex-1">
+      <div class="text-sm font-medium">${escapeHtml(model.name)}${englishVariant ? ' (EN)' : ''}</div>
+      <div class="text-xs text-vf-dim">${escapeHtml(model.note)}</div>
+    </div>
+    <div class="flex items-center justify-between gap-2 min-h-7">
+      <div class="flex items-center gap-1.5 font-mono text-[11px] text-vf-faint">${formatBytes(model.sizeBytes)}${renderFit(model)}</div>
+      ${renderStatus(model)}
+    </div>
+  </div>`
+}
+
+function renderVariantSwitch(family: Family, current: Variant): string {
+  if (!family.variants.multi || !family.variants.en) return ''
+  const segment = (variant: Variant, label: string) =>
+    `<button type="button" data-action="variant" data-family="${escapeHtml(family.name)}" data-variant="${variant}"
+      class="${SEGMENT} ${variant === current ? SEGMENT_ACTIVE : SEGMENT_IDLE}">${label}</button>`
+  return `<div class="flex p-0.5 gap-0.5 bg-[#141416] border border-vf-rim rounded-md" title="Multilingüe o solo inglés">
+    ${segment('multi', 'Multi')}${segment('en', 'EN')}
+  </div>`
+}
+
+function renderRow(family: Family): string {
+  const model = shown(family)
+  const specs = [
+    model.sizeBytes ? formatBytes(model.sizeBytes) : '',
+    model.ramBytes ? `RAM ~${formatBytes(model.ramBytes)}` : '',
+  ].filter(Boolean).join(' · ')
+  return `<div class="flex items-center gap-4 flex-wrap px-4 py-3 ${isInUse(model) ? 'bg-[#1d1f1c]' : 'bg-vf-rail'}">
+    <div class="flex-1 min-w-[200px] flex flex-col gap-0.5">
+      <div class="flex items-center gap-2 text-[13.5px]">
+        <span class="break-all">${escapeHtml(model.name)}</span>
+        ${family.variants.multi ? '' : '<span class="text-[11px] text-vf-dim shrink-0">Solo inglés</span>'}
+      </div>
+      <div class="text-xs text-vf-low">${escapeHtml(model.note)}</div>
+    </div>
+    ${renderVariantSwitch(family, variantOf(model))}
+    <div class="flex items-center justify-end gap-1.5 min-w-[150px] font-mono text-[11px] text-vf-faint">${specs}${renderFit(model)}</div>
+    <div class="w-[92px] flex justify-end">${renderStatus(model)}</div>
+  </div>`
+}
+
+// English-only whisper model with another dictation language: offer the multilingual variant
 function renderLanguageWarning() {
-  const warning = byId('whisper-language-warning')
+  const warning = byId('whisper-warning')
   if (!warning || !catalog || !settings) return
-  const active = catalog.whisper.find(m => m.active && m.downloaded)
-  warning.classList.toggle('hidden', !(active?.englishOnly && settings.language !== 'en'))
+  const active = catalog.whisper.find(isInUse)
+  const needed = Boolean(active?.englishOnly) && settings.language !== 'en'
+  warning.classList.toggle('hidden', !needed)
+  warning.classList.toggle('flex', needed)
+  if (!active || !needed) return
+
+  const multilingual = families('whisper').find(f => f.variants.en === active)?.variants.multi
+  const fix = multilingual && !multilingual.progress && !busyFiles.has(multilingual.file)
+    ? `<button type="button" data-action="${multilingual.downloaded ? 'activate' : 'download-activate'}" data-file="${escapeHtml(multilingual.file)}"
+        class="bg-vf-amber text-[#1a1408] rounded-md px-3 py-1.5 text-[12.5px] font-medium cursor-pointer">
+        ${multilingual.downloaded ? 'Usar multilingüe' : `Descargar multilingüe · ${formatBytes(multilingual.sizeBytes)}`}</button>`
+    : ''
+  warning.innerHTML = `<span class="flex-1 min-w-[200px] text-[12.5px] text-[#f0c88e]">${escapeHtml(active.name)} solo transcribe inglés. Para dictar en otro idioma necesitas la versión multilingüe.</span>${fix}`
+}
+
+function renderKind(kind: ModelKind) {
+  if (!catalog) return
+  const all = families(kind)
+  const recommended = recommendedModels(kind, catalog.totalMemBytes)
+    .map(file => all.find(f => Object.values(f.variants).some(m => m.file === file)))
+
+  const active = byId(`${kind}-active`)
+  const recs = byId(`${kind}-recs`)
+  const rows = byId(`${kind}-rows`)
+  const count = byId(`${kind}-count`)
+  if (active) active.innerHTML = renderActive(kind)
+  if (recs) recs.innerHTML = recommended.map((family, i) => (family ? renderRecommendation(family, TIERS[i]) : '')).join('')
+  if (rows) rows.innerHTML = all.map(renderRow).join('')
+  if (count) count.textContent = String(all.length)
 }
 
 function renderCatalog() {
   if (!catalog) return
-  const whisperGrid = byId('whisper-grid')
-  const llmGrid = byId('llm-grid')
-  if (whisperGrid) whisperGrid.innerHTML = catalog.whisper.map(renderCard).join('')
-  if (llmGrid) llmGrid.innerHTML = catalog.llm.map(renderCard).join('')
-  renderActiveBadge(byId('whisper-active-badge'), catalog.whisper)
-  renderActiveBadge(byId('llm-active-badge'), catalog.llm)
+  KINDS.forEach(renderKind)
   renderLanguageWarning()
-  renderSystemMemory()
+  const memory = byId('system-memory')
+  if (memory && catalog.totalMemBytes) {
+    // RAM is sold in binary units: 8 GiB reports 8.59e9 bytes but is "8 GB"
+    memory.textContent = 'Todo se procesa en tu equipo. Recomendaciones ajustadas a ' +
+      `${Math.round(catalog.totalMemBytes / 2 ** 30)} GB de RAM.`
+  }
+}
+
+// Download progress arrives several times a second: update the bars in place, because
+// re-rendering the lists would swallow clicks on the other models' buttons.
+function renderProgress(model: ModelStatus) {
+  const percent = progressPercent(model)
+  const indicators = [...document.querySelectorAll<HTMLElement>('[data-progress-file]')]
+    .filter(el => el.dataset.progressFile === model.file)
+  if (indicators.length === 0) return renderCatalog()
+  for (const indicator of indicators) {
+    const bar = indicator.querySelector<HTMLElement>('[data-bar]')
+    const label = indicator.querySelector('[data-percent]')
+    if (bar) bar.style.width = percent
+    if (label) label.textContent = percent
+  }
 }
 
 function renderLlmParams() {
   if (!settings) return
   document.querySelectorAll<HTMLButtonElement>('[data-intervention]').forEach(btn => {
     const active = btn.dataset.intervention === settings!.intervention
-    btn.className = `px-2 py-0.5 rounded font-label-xs text-label-xs transition-colors ${active ? INTERVENTION_ACTIVE : INTERVENTION_IDLE}`
+    btn.className = `${SEGMENT} ${active ? SEGMENT_ACTIVE : SEGMENT_IDLE}`
     btn.setAttribute('aria-pressed', String(active))
   })
   const slider = byId<HTMLInputElement>('llm-temperature')
@@ -140,10 +218,7 @@ function renderLlmParams() {
 async function refreshCatalog() {
   catalog = await window.electronAPI.getModelCatalog()
   const pathValue = byId('models-path-value')
-  if (pathValue) {
-    pathValue.textContent = catalog.modelsDir
-    pathValue.title = catalog.modelsDir
-  }
+  if (pathValue) pathValue.textContent = catalog.modelsDir
   renderCatalog()
 }
 
@@ -154,10 +229,6 @@ async function saveSettings(patch: Partial<AppSettings>) {
   } catch (e) {
     showStatus(errorMessage(e), 'error')
   }
-}
-
-function findModel(file: string): ModelStatus | undefined {
-  return catalog ? [...catalog.whisper, ...catalog.llm].find(m => m.file === file) : undefined
 }
 
 async function activate(kind: ModelKind, file: string) {
@@ -174,13 +245,14 @@ async function activate(kind: ModelKind, file: string) {
   }
 }
 
-async function download(model: ModelStatus) {
+async function download(model: ModelStatus, activateAfter: boolean) {
+  model.progress = { received: 0, total: model.sizeBytes || 1 }
+  renderCatalog()
   try {
     await window.electronAPI.downloadModel(model.file)
     await refreshCatalog()
-    // First model of its kind: make it active right away
-    const list = model.kind === 'whisper' ? catalog!.whisper : catalog!.llm
-    if (!list.some(m => m.active && m.downloaded)) await activate(model.kind, model.file)
+    // The first model of its kind becomes the active one right away
+    if (activateAfter || !modelsOf(model.kind).some(isInUse)) await activate(model.kind, model.file)
     else showStatus(`${model.name} descargado`)
   } catch (e) {
     showStatus(errorMessage(e), 'error')
@@ -188,18 +260,21 @@ async function download(model: ModelStatus) {
   }
 }
 
-function onGridClick(event: Event) {
+function onModelClick(event: Event) {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]')
-  const model = button && findModel(button.dataset.file ?? '')
-  if (!button || !model) return
+  if (!button) return
+  const { action, file = '', family, variant } = button.dataset
 
-  if (button.dataset.action === 'download') {
-    model.progress = { received: 0, total: model.sizeBytes || 1 }
+  if (action === 'variant' && family) {
+    pickedVariants.set(family, variant as Variant)
     renderCatalog()
-    void download(model)
-  } else if (button.dataset.action === 'activate') {
-    void activate(model.kind, model.file)
+    return
   }
+  const model = findModel(file)
+  if (!model) return
+  if (action === 'activate') void activate(model.kind, model.file)
+  else if (action === 'download') void download(model, false)
+  else if (action === 'download-activate') void download(model, true)
 }
 
 export async function initModelsPage() {
@@ -216,14 +291,13 @@ export async function initModelsPage() {
     }
   })
 
-  byId('whisper-grid')?.addEventListener('click', onGridClick)
-  byId('llm-grid')?.addEventListener('click', onGridClick)
+  document.querySelector('main')?.addEventListener('click', onModelClick)
 
   api.onModelDownloadProgress(progress => {
     const model = findModel(progress.file)
     if (!model) return
     model.progress = { received: progress.received, total: progress.total || 1 }
-    renderCatalog()
+    renderProgress(model)
   })
 
   const language = byId<HTMLSelectElement>('whisper-language')

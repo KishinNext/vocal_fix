@@ -107,6 +107,18 @@ export const LLM_MODELS: CatalogModel[] = [
   },
 ]
 
+// Three picks per engine (fast, balanced, best quality) sized for the machine's RAM
+const ROOMY_RAM_BYTES = 12 * 2 ** 30
+
+export function recommendedModels(kind: ModelKind, totalMemBytes: number): string[] {
+  if (kind === 'llm') {
+    return ['qwen2.5-0.5b-instruct-q4_k_m.gguf', 'qwen2.5-1.5b-instruct-q4_k_m.gguf', 'Llama-3.2-3B-Instruct-Q4_K_M.gguf']
+  }
+  return totalMemBytes >= ROOMY_RAM_BYTES
+    ? ['ggml-small.bin', 'ggml-large-v3-turbo-q5_0.bin', 'ggml-large-v3.bin']
+    : ['ggml-base.bin', 'ggml-small.bin', 'ggml-large-v3-turbo-q5_0.bin']
+}
+
 export function findCatalogModel(file: string): CatalogModel | undefined {
   return [...WHISPER_MODELS, ...LLM_MODELS].find(m => m.file === file)
 }

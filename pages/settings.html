@@ -1,104 +1,116 @@
-<!DOCTYPE html><html class="dark" lang="es" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><title>VocalFix - Ajustes</title><link rel="stylesheet" href="/src/styles/settings.css"></head><body class="bg-background font-body-md text-on-surface antialiased select-none min-h-screen flex flex-col justify-between" data-page="models"><header class="fixed top-0 left-0 right-0 z-50 h-12 bg-background border-b border-white/[0.08] flex items-center pl-20 pr-4" style="-webkit-app-region: drag;"></header><main class="w-full pt-12 flex-1 bg-surface">
-<div class="w-full flex flex-col lg:flex-row min-h-[calc(100vh-3rem)]">
-<!-- Sidebar: rendered by src/settings/shared.ts (renderSettingsNav) -->
-<aside class="w-full lg:w-72 shrink-0 bg-surface-container-low lg:min-h-full flex flex-col p-4 gap-3">
-<button type="button" data-path="editor" title="Volver al Editor" class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm text-left">
-<span class="material-symbols-outlined text-[17px] text-outline">arrow_back</span>
-<span>Volver al editor</span>
-</button>
-<nav id="settings-nav" class="flex flex-col gap-1" data-active="modelos-locales"></nav>
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VocalFix - Ajustes</title>
+<link rel="stylesheet" href="/src/styles/app.css">
+</head>
+<body class="h-screen bg-vf-bg text-vf-ink font-sans antialiased select-none flex flex-col overflow-hidden" data-page="models">
+<!-- Window header: the left column is kept free for the macOS window buttons -->
+<header class="h-11 shrink-0 grid grid-cols-[120px_1fr_120px] items-center px-4 border-b border-vf-line bg-vf-chrome" style="-webkit-app-region: drag;">
+<div></div>
+<span class="text-center text-[12.5px] text-vf-dim">Configuración</span>
+<div></div>
+</header>
+<div class="flex-1 min-h-0 flex">
+<!-- Sidebar: sections rendered by src/settings/shared.ts (renderSettingsNav) -->
+<aside class="w-[232px] shrink-0 bg-vf-rail border-r border-vf-line px-2.5 py-5 flex flex-col gap-0.5">
+<button type="button" data-path="editor" class="text-left px-3 py-2 mb-3 text-[13px] text-vf-dim rounded-md cursor-pointer transition-colors hover:text-vf-ink">← Volver al editor</button>
+<nav id="settings-nav" class="flex flex-col gap-0.5" data-active="modelos-locales"></nav>
 </aside>
-<section class="flex-1 flex flex-col bg-surface p-6 lg:p-10 gap-8 min-w-0 max-w-6xl">
-<div class="flex items-end justify-between gap-4">
-  <div class="flex flex-col gap-1">
-    <div class="flex items-center gap-2 font-label-xs text-label-xs text-outline uppercase tracking-wider">
-      <span>Configuración</span>
-      <span class="text-surface-container-highest">/</span>
-      <span class="text-primary">Modelos Locales</span>
-    </div>
-    <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Modelos &amp; Motores Locales</h1>
-  </div>
-  <p id="settings-status" role="status" class="hidden font-label-xs text-label-xs text-right"></p>
+<main class="flex-1 min-w-0 overflow-auto px-10 pt-10 pb-20">
+<div class="max-w-[820px] mx-auto flex flex-col gap-12">
+<header class="flex items-start justify-between gap-4">
+<div class="flex flex-col gap-1.5">
+<h1 class="text-[26px] font-semibold tracking-[-.01em] leading-tight">Modelos locales</h1>
+<p id="system-memory" class="text-[13px] text-vf-dim">Todo se procesa en tu equipo.</p>
 </div>
+<p id="settings-status" role="status" class="hidden shrink-0 pt-2 text-xs text-right"></p>
+</header>
 
-<!-- Storage Path Banner -->
-<div class="flex items-center gap-2.5 px-3 py-2 rounded bg-surface-container-low border border-surface-container-highest/50" id="models-path-banner">
-  <span class="material-symbols-outlined text-[16px] text-outline shrink-0">folder_open</span>
-  <div class="flex flex-col min-w-0">
-    <span class="font-label-xs text-label-xs text-outline">Almacenamiento de modelos</span>
-    <span class="font-label-xs text-label-xs text-on-surface-variant font-mono truncate" id="models-path-value" title="">Cargando ruta…</span>
-  </div>
-  <button type="button" id="models-path-pick" title="Cambiar carpeta de modelos" class="ml-auto shrink-0 flex items-center gap-1 px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant hover:text-on-surface font-label-xs text-label-xs">
-    <span class="material-symbols-outlined text-[14px]">drive_folder_upload</span>
-    <span>Cambiar</span>
-  </button>
+<section class="flex flex-col gap-5">
+<div class="flex flex-col gap-0.5">
+<h2 class="text-base font-semibold">Transcripción de voz</h2>
+<div class="text-[12.5px] text-vf-low">Whisper · convierte audio en texto sin conexión</div>
 </div>
-
-<p id="system-memory" class="-mt-5 font-label-xs text-label-xs text-outline"></p>
-
-<!-- Whisper -->
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">graphic_eq</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">Transcripción de Voz (Whisper.cpp)</h2>
-        <p class="font-label-xs text-label-xs text-outline">Conversión directa de audio a texto sin conexión</p>
-      </div>
-    </div>
-    <span id="whisper-active-badge" class="font-label-xs text-label-xs px-2 py-0.5 rounded text-outline">…</span>
-  </div>
-  <div id="whisper-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1"></div>
-  <div class="flex flex-col gap-2 pt-2">
-    <div class="flex items-center gap-3">
-      <label for="whisper-language" class="font-label-xs text-label-xs text-outline">Idioma de dictado:</label>
-      <div class="relative">
-        <select id="whisper-language" class="bg-surface-container text-on-surface px-2.5 py-1 pr-6 rounded font-label-xs text-label-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary border border-surface-container-highest/40">
-          <option value="es">Español</option>
-          <option value="en">Inglés</option>
-          <option value="auto">Detección automática</option>
-        </select>
-        <span class="material-symbols-outlined absolute right-1.5 top-1 text-[14px] text-outline pointer-events-none">unfold_more</span>
-      </div>
-    </div>
-    <p id="whisper-language-warning" class="hidden font-label-xs text-label-xs text-error">
-      El modelo activo solo transcribe inglés. Activa un modelo multilingüe para dictar en otro idioma.
-    </p>
-  </div>
+<div class="bg-vf-card border border-vf-rim rounded-[10px] px-5 py-[18px] flex flex-col gap-4">
+<div class="flex items-center gap-4 flex-wrap">
+<div id="whisper-active" class="flex-1 min-w-[220px] flex flex-col gap-1"></div>
+<label class="flex flex-col gap-1.5 text-[11.5px] text-vf-low">Idioma de dictado
+<select id="whisper-language" class="vf-select bg-vf-raised text-vf-ink border-vf-stroke py-[7px] pl-2.5 text-[13px] min-w-[190px]">
+<option value="auto">Detección automática</option>
+<option value="es">Español</option>
+<option value="en">Inglés</option>
+</select>
+</label>
 </div>
-
-<!-- LLM -->
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">neurology</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">Motor Lingüístico (Gramática &amp; Estilo)</h2>
-        <p class="font-label-xs text-label-xs text-outline">Reescritura fluida, puntuación y corrección sintáctica con llama.cpp</p>
-      </div>
-    </div>
-    <span id="llm-active-badge" class="font-label-xs text-label-xs px-2 py-0.5 rounded text-outline">…</span>
-  </div>
-  <div id="llm-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-1"></div>
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-    <div class="flex items-center gap-2" role="group" aria-label="Intervención sintáctica">
-      <span class="font-label-xs text-label-xs text-outline">Intervención sintáctica:</span>
-      <div class="flex items-center gap-1">
-        <button type="button" data-intervention="minimal" title="Solo ortografía, puntuación y errores claros" class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-xs text-label-xs">Mínima</button>
-        <button type="button" data-intervention="balanced" title="Corrige y mejora frases poco claras" class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-xs text-label-xs">Equilibrada</button>
-        <button type="button" data-intervention="creative" title="Reescribe libremente para mayor fluidez" class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-xs text-label-xs">Creativa</button>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <label for="llm-temperature" class="font-label-xs text-label-xs text-outline">Temperatura:</label>
-      <input id="llm-temperature" type="range" min="0" max="1" step="0.05" value="0.3" class="w-32 accent-primary cursor-pointer">
-      <span id="llm-temperature-value" class="font-label-xs text-label-xs text-on-surface-variant tabular-nums w-8">0.30</span>
-    </div>
-  </div>
+<div id="whisper-warning" class="hidden items-center gap-3 flex-wrap px-3 py-2.5 rounded-[7px] bg-[#2a2218] border border-[#4a3a22]"></div>
 </div>
-
+<div class="flex flex-col gap-2.5">
+<div class="vf-label">Recomendados para tu equipo</div>
+<div id="whisper-recs" class="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-2.5"></div>
+</div>
+<details class="group border-t border-vf-line">
+<summary class="vf-summary"><span class="vf-chevron">▸</span>Todos los modelos <span id="whisper-count" class="text-[#5f5e63]"></span></summary>
+<div id="whisper-rows" class="flex flex-col border border-vf-line rounded-[10px] overflow-hidden divide-y divide-vf-line"></div>
+</details>
 </section>
+
+<section class="flex flex-col gap-5">
+<div class="flex flex-col gap-0.5">
+<h2 class="text-base font-semibold">Motor lingüístico</h2>
+<div class="text-[12.5px] text-vf-low">Gramática, puntuación y reescritura con llama.cpp</div>
+</div>
+<div class="bg-vf-card border border-vf-rim rounded-[10px] px-5 py-[18px] flex flex-col gap-4">
+<div class="flex items-center gap-4 flex-wrap">
+<div id="llm-active" class="flex-1 min-w-[220px] flex flex-col gap-1"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2.5">
+<div class="vf-label">Recomendados para tu equipo</div>
+<div id="llm-recs" class="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-2.5"></div>
+</div>
+<details class="group border-t border-vf-line">
+<summary class="vf-summary"><span class="vf-chevron">▸</span>Todos los modelos <span id="llm-count" class="text-[#5f5e63]"></span></summary>
+<div id="llm-rows" class="flex flex-col border border-vf-line rounded-[10px] overflow-hidden divide-y divide-vf-line"></div>
+</details>
+</section>
+
+<details class="group border-t border-vf-line">
+<summary class="vf-summary"><span class="vf-chevron">▸</span>Avanzado</summary>
+<div class="flex flex-col gap-5 pt-1 pl-5">
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex-1 min-w-[240px] flex flex-col gap-1">
+<div class="text-[13px]">Carpeta de modelos</div>
+<div id="models-path-value" class="font-mono text-[11.5px] text-vf-low break-all select-text">Cargando ruta…</div>
+</div>
+<button type="button" id="models-path-pick" class="vf-btn">Cambiar</button>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex-1 min-w-[240px] flex flex-col gap-1">
+<div class="text-[13px]">Intervención sintáctica</div>
+<div class="text-xs text-vf-low">Cuánto puede reescribir el motor lingüístico.</div>
+</div>
+<div class="flex p-0.5 gap-0.5 bg-[#141416] border border-vf-rim rounded-md" role="group" aria-label="Intervención sintáctica">
+<button type="button" data-intervention="minimal" title="Solo ortografía, puntuación y errores claros">Mínima</button>
+<button type="button" data-intervention="balanced" title="Corrige y mejora frases poco claras">Equilibrada</button>
+<button type="button" data-intervention="creative" title="Reescribe libremente para mayor fluidez">Creativa</button>
+</div>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="flex-1 min-w-[240px] flex flex-col gap-1">
+<label for="llm-temperature" class="text-[13px]">Temperatura</label>
+<div class="text-xs text-vf-low">Más alta, más variedad al reescribir.</div>
+</div>
+<div class="flex items-center gap-2.5">
+<input id="llm-temperature" type="range" min="0" max="1" step="0.05" value="0.3" class="w-36 accent-vf-amber cursor-pointer">
+<span id="llm-temperature-value" class="font-mono text-[11.5px] text-vf-soft tabular-nums w-8">0.30</span>
+</div>
+</div>
+<p class="text-[12.5px] text-vf-low max-w-[620px]">Un modelo aparece como «Aceptable» si usa más del 30% de tu RAM y como «Exigente» si pasa del 50%. Whisper y el motor lingüístico pueden estar cargados a la vez.</p>
+</div>
+</details>
 </div>
 </main>
+</div>
 <script type="module" src="/src/settings.ts"></script>
 </body></html>

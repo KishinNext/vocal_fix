@@ -3,9 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, sanitizeSettings } from '../electron/settingsSchema'
+import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, PROFILES, sanitizeSettings } from '../electron/settingsSchema'
 import { buildGrammarPrompt, buildSystemPrompt } from '../electron/prompt'
-import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile, modelDisplayName } from '../electron/modelCatalog'
+import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile, modelDisplayName, recommendedModels,
+} from '../electron/modelCatalog'
 import { acceleratorToLabels, eventToAccelerator } from '../src/settings/accelerator'
 import { SETTINGS_SECTIONS, errorMessage, escapeHtml, formatBytes, memoryFit, renderSettingsNav } from '../src/settings/shared'
 
@@ -204,9 +205,9 @@ describe('settings shared helpers', () => {
 
   it('memoryFit classifies RAM usage against the machine total', () => {
     const total = 16e9
-    expect(memoryFit(0.8e9, total)).toBe('light')
-    expect(memoryFit(4e9, total)).toBe('light')
-    expect(memoryFit(4.2e9, total)).toBe('ok')
+    expect(memoryFit(0.8e9, total)).toBeNull()
+    expect(memoryFit(4.7e9, total)).toBeNull()
+    expect(memoryFit(4.8e9, total)).toBe('ok')
     expect(memoryFit(8e9, total)).toBe('ok')
     expect(memoryFit(8.1e9, total)).toBe('heavy')
   })
@@ -258,15 +259,10 @@ describe('concise profile', () => {
   })
 })
 
-describe('tone tabs', () => {
-  function mountTabs() {
-    document.body.innerHTML = `
-      <div id="tone-tabs">
-        <button data-tone="conversational">Natural</button>
-        <button data-tone="business">Profesional</button>
-        <button data-tone="concise">Conciso</button>
-      </div>`
-    return document.getElementById('tone-tabs')!
+describe('tone select', () => {
+  function mountSelect() {
+    document.body.innerHTML = '<select id="tone-select"></select>'
+    return document.getElementById('tone-select') as HTMLSelectElement
   }
 
   function mockApi(overrides: Record<string, unknown> = {}) {
@@ -279,48 +275,93 @@ describe('tone tabs', () => {
     return api
   }
 
-  const selected = (el: HTMLElement) =>
-    [...el.querySelectorAll('[aria-selected="true"]')].map(b => (b as HTMLElement).dataset.tone)
+  const choose = (select: HTMLSelectElement, value: string) => {
+    select.value = value
+    select.dispatchEvent(new Event('change'))
+  }
 
   const noop = { onChange: vi.fn().mockResolvedValue(undefined), onError: vi.fn() }
 
-  it('highlights the saved profile on load', async () => {
-    const { initToneTabs } = await import('../src/tone-tabs')
+  it('offers every profile', async () => {
+    // Arrange
+    const { initToneSelect } = await import('../src/tone-select')
     mockApi()
-    const tabs = mountTabs()
-    await initToneTabs(tabs, noop)
-    expect(selected(tabs)).toEqual(['business'])
+    const select = mountSelect()
+
+    // Act
+    await initToneSelect(select, noop)
+
+    // Assert
+    expect([...select.options].map(o => o.value).sort()).toEqual([...PROFILES].sort())
   })
 
-  it('selects no tab for profiles that only exist in Settings', async () => {
-    const { renderToneTabs } = await import('../src/tone-tabs')
-    const tabs = mountTabs()
-    renderToneTabs(tabs, 'academic')
-    expect(selected(tabs)).toEqual([])
+  it('shows the saved profile on load', async () => {
+    // Arrange
+    const { initToneSelect } = await import('../src/tone-select')
+    mockApi()
+    const select = mountSelect()
+
+    // Act
+    await initToneSelect(select, noop)
+
+    // Assert
+    expect(select.value).toBe('business')
   })
 
   it('saves the profile before notifying the change', async () => {
-    const { initToneTabs } = await import('../src/tone-tabs')
+    // Arrange
+    const { initToneSelect } = await import('../src/tone-select')
     const api = mockApi()
-    const tabs = mountTabs()
+    const select = mountSelect()
     const onChange = vi.fn(async () => {
       expect(api.updateSettings).toHaveBeenCalledWith({ profile: 'concise' })
     })
-    await initToneTabs(tabs, { onChange, onError: vi.fn() })
+    await initToneSelect(select, { onChange, onError: vi.fn() })
 
-    tabs.querySelector<HTMLButtonElement>('[data-tone="concise"]')!.click()
+    // Act
+    choose(select, 'concise')
+
+    // Assert
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith('concise'))
-    expect(selected(tabs)).toEqual(['concise'])
   })
 
   it('reports errors from the rewrite', async () => {
-    const { initToneTabs } = await import('../src/tone-tabs')
+    // Arrange
+    const { initToneSelect } = await import('../src/tone-select')
     mockApi()
-    const tabs = mountTabs()
+    const select = mountSelect()
     const onError = vi.fn()
-    await initToneTabs(tabs, { onChange: vi.fn().mockRejectedValue(new Error('LLM model not downloaded')), onError })
+    await initToneSelect(select, { onChange: vi.fn().mockRejectedValue(new Error('LLM model not downloaded')), onError })
 
-    tabs.querySelector<HTMLButtonElement>('[data-tone="business"]')!.click()
+    // Act
+    choose(select, 'academic')
+
+    // Assert
     await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('LLM model not downloaded'))
+  })
+})
+
+describe('recommendedModels()', () => {
+  it.each([
+    ['whisper', 8 * 2 ** 30],
+    ['whisper', 16 * 2 ** 30],
+    ['llm', 8 * 2 ** 30],
+  ] as const)('recommends three %s models from the catalog for %s bytes of RAM', (kind, totalMemBytes) => {
+    // Act
+    const files = recommendedModels(kind, totalMemBytes)
+
+    // Assert
+    expect(files).toHaveLength(3)
+    expect(files.map(file => findCatalogModel(file)?.kind)).toEqual([kind, kind, kind])
+  })
+
+  it('recommends larger whisper models when there is more RAM', () => {
+    // Act
+    const small = recommendedModels('whisper', 8 * 2 ** 30)
+    const roomy = recommendedModels('whisper', 16 * 2 ** 30)
+
+    // Assert
+    expect(roomy).toContain('ggml-large-v3.bin')
+    expect(small).not.toContain('ggml-large-v3.bin')
   })
 })

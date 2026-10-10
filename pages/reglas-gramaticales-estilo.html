@@ -1,136 +1,99 @@
-<!DOCTYPE html><html class="dark" lang="es" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><title>VocalFix - Reglas Gramaticales</title><link rel="stylesheet" href="/src/styles/settings.css"></head><body class="bg-background font-body-md text-on-surface antialiased select-none min-h-screen flex flex-col justify-between" data-page="rules"><header class="fixed top-0 left-0 right-0 z-50 h-12 bg-background border-b border-white/[0.08] flex items-center pl-20 pr-4" style="-webkit-app-region: drag;"></header><main class="w-full pt-12 flex-1 bg-surface">
-<div class="w-full flex flex-col lg:flex-row min-h-[calc(100vh-3rem)]">
-<!-- Sidebar: rendered by src/settings/shared.ts (renderSettingsNav) -->
-<aside class="w-full lg:w-72 shrink-0 bg-surface-container-low lg:min-h-full flex flex-col p-4 gap-3">
-<button type="button" data-path="editor" title="Volver al Editor" class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm text-left">
-<span class="material-symbols-outlined text-[17px] text-outline">arrow_back</span>
-<span>Volver al editor</span>
-</button>
-<nav id="settings-nav" class="flex flex-col gap-1" data-active="reglas-gramaticales-estilo"></nav>
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VocalFix - Gramática y estilo</title>
+<link rel="stylesheet" href="/src/styles/app.css">
+</head>
+<body class="h-screen bg-vf-bg text-vf-ink font-sans antialiased select-none flex flex-col overflow-hidden" data-page="rules">
+<!-- Window header: the left column is kept free for the macOS window buttons -->
+<header class="h-11 shrink-0 grid grid-cols-[120px_1fr_120px] items-center px-4 border-b border-vf-line bg-vf-chrome" style="-webkit-app-region: drag;">
+<div></div>
+<span class="text-center text-[12.5px] text-vf-dim">Configuración</span>
+<div></div>
+</header>
+<div class="flex-1 min-h-0 flex">
+<!-- Sidebar: sections rendered by src/settings/shared.ts (renderSettingsNav) -->
+<aside class="w-[232px] shrink-0 bg-vf-rail border-r border-vf-line px-2.5 py-5 flex flex-col gap-0.5">
+<button type="button" data-path="editor" class="text-left px-3 py-2 mb-3 text-[13px] text-vf-dim rounded-md cursor-pointer transition-colors hover:text-vf-ink">← Volver al editor</button>
+<nav id="settings-nav" class="flex flex-col gap-0.5" data-active="reglas-gramaticales-estilo"></nav>
 </aside>
-<section class="flex-1 flex flex-col bg-surface p-6 lg:p-10 gap-8 min-w-0 max-w-6xl">
-<div class="flex items-end justify-between gap-4">
-  <div class="flex flex-col gap-1">
-    <div class="flex items-center gap-2 font-label-xs text-label-xs text-outline uppercase tracking-wider">
-      <span>Configuración</span>
-      <span class="text-surface-container-highest">/</span>
-      <span class="text-primary">Motor Lingüístico</span>
-    </div>
-    <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Reglas Gramaticales &amp; Estilo</h1>
-  </div>
-  <p id="settings-status" role="status" class="hidden font-label-xs text-label-xs text-right"></p>
+<main class="flex-1 min-w-0 overflow-auto px-10 pt-10 pb-20">
+<div class="max-w-[720px] mx-auto flex flex-col gap-8">
+<header class="flex items-start justify-between gap-4">
+<div class="flex flex-col gap-1.5">
+<h1 class="text-[26px] font-semibold tracking-[-.01em] leading-tight">Gramática y estilo</h1>
+<p class="text-[13px] text-vf-dim">Cómo reescribe el motor lingüístico lo que dictas.</p>
 </div>
+<p id="settings-status" role="status" class="hidden shrink-0 pt-2 text-xs text-right"></p>
+</header>
 
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">tune</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">Perfil de Corrección</h2>
-        <p class="font-label-xs text-label-xs text-outline">Tono y registro que el modelo aplica al corregir</p>
-      </div>
-    </div>
-  </div>
-  <div role="radiogroup" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
-    <button type="button" role="radio" data-profile="conversational" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
-      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
-      <div class="flex flex-col gap-1">
-        <span class="font-body-sm text-body-sm font-medium text-on-surface">Conversacional</span>
-        <span class="font-label-xs text-label-xs text-on-surface-variant">Mantiene un tono informal y natural, eliminando repeticiones obvias.</span>
-      </div>
-    </button>
-    <button type="button" role="radio" data-profile="academic" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
-      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
-      <div class="flex flex-col gap-1">
-        <span class="font-body-sm text-body-sm font-medium text-on-surface">Académico / Técnico</span>
-        <span class="font-label-xs text-label-xs text-on-surface-variant">Registro formal y léxico preciso.</span>
-      </div>
-    </button>
-    <button type="button" role="radio" data-profile="business" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
-      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
-      <div class="flex flex-col gap-1">
-        <span class="font-body-sm text-body-sm font-medium text-on-surface">Negocios &amp; Email</span>
-        <span class="font-label-xs text-label-xs text-on-surface-variant">Claridad ejecutiva: frases concisas y tono profesional.</span>
-      </div>
-    </button>
-    <button type="button" role="radio" data-profile="concise" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
-      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
-      <div class="flex flex-col gap-1">
-        <span class="font-body-sm text-body-sm font-medium text-on-surface">Conciso</span>
-        <span class="font-label-xs text-label-xs text-on-surface-variant">Lo más breve posible: elimina redundancias sin perder ninguna idea clave.</span>
-      </div>
-    </button>
-    <button type="button" role="radio" data-profile="es-en" class="p-3.5 rounded bg-surface-container border border-transparent hover:bg-surface-container-high transition-colors flex items-start gap-3 text-left">
-      <span data-radio class="material-symbols-outlined text-[18px] text-outline">radio_button_unchecked</span>
-      <div class="flex flex-col gap-1">
-        <span class="font-body-sm text-body-sm font-medium text-on-surface">Español L1 → Inglés</span>
-        <span class="font-label-xs text-label-xs text-on-surface-variant">Para inglés dictado por hispanohablantes: corrige calcos y falsos amigos.</span>
-      </div>
-    </button>
-  </div>
+<section class="flex flex-col gap-3">
+<div class="flex flex-col gap-0.5">
+<h2 class="text-[15px] font-semibold">Tono por defecto</h2>
+<div class="text-[12.5px] text-vf-low">Puedes cambiarlo en cada dictado desde el editor.</div>
 </div>
-
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">rule</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">Reglas de Corrección</h2>
-        <p class="font-label-xs text-label-xs text-outline">Instrucciones adicionales para el modelo</p>
-      </div>
-    </div>
-  </div>
-  <div class="flex flex-col gap-2.5 pt-1">
-    <div class="flex items-center justify-between gap-4 p-3 rounded bg-surface-container">
-      <div class="flex items-start gap-3">
-        <span class="material-symbols-outlined text-[18px] text-outline">voice_selection</span>
-        <div class="flex flex-col gap-0.5">
-          <span class="font-body-sm text-body-sm font-medium text-on-surface">Eliminar muletillas y vacilaciones</span>
-          <span class="font-label-xs text-label-xs text-on-surface-variant">Quita “eh”, “um”, “este”, “o sea”, “like”, “you know”.</span>
-        </div>
-      </div>
-      <button type="button" role="switch" aria-checked="false" data-rule="removeFillers" aria-label="Eliminar muletillas y vacilaciones" class="relative shrink-0 w-9 h-5 rounded-full bg-surface-container-highest transition-colors">
-        <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-on-surface transition-transform"></span>
-      </button>
-    </div>
-    <div class="flex items-center justify-between gap-4 p-3 rounded bg-surface-container">
-      <div class="flex items-start gap-3">
-        <span class="material-symbols-outlined text-[18px] text-outline">format_quote</span>
-        <div class="flex flex-col gap-0.5">
-          <span class="font-body-sm text-body-sm font-medium text-on-surface">Expandir contracciones coloquiales</span>
-          <span class="font-label-xs text-label-xs text-on-surface-variant">“gonna” → “going to”, “pa’” → “para”.</span>
-        </div>
-      </div>
-      <button type="button" role="switch" aria-checked="false" data-rule="normalizeContractions" aria-label="Expandir contracciones coloquiales" class="relative shrink-0 w-9 h-5 rounded-full bg-surface-container-highest transition-colors">
-        <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-on-surface transition-transform"></span>
-      </button>
-    </div>
-  </div>
+<div role="radiogroup" class="vf-list">
+<button type="button" role="radio" aria-checked="false" data-profile="conversational" class="flex items-start gap-3 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span data-radio class="mt-[3px] w-3.5 h-3.5 shrink-0 rounded-full border-[#55555c] border-[1.5px]"></span>
+<span class="flex flex-col gap-0.5"><span class="text-[13.5px]">Conversacional</span><span class="text-xs text-vf-low">Tono informal y natural. Elimina repeticiones obvias.</span></span>
+</button>
+<button type="button" role="radio" aria-checked="false" data-profile="business" class="flex items-start gap-3 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span data-radio class="mt-[3px] w-3.5 h-3.5 shrink-0 rounded-full border-[#55555c] border-[1.5px]"></span>
+<span class="flex flex-col gap-0.5"><span class="text-[13.5px]">Negocios &amp; Email</span><span class="text-xs text-vf-low">Frases claras y tono profesional.</span></span>
+</button>
+<button type="button" role="radio" aria-checked="false" data-profile="academic" class="flex items-start gap-3 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span data-radio class="mt-[3px] w-3.5 h-3.5 shrink-0 rounded-full border-[#55555c] border-[1.5px]"></span>
+<span class="flex flex-col gap-0.5"><span class="text-[13.5px]">Académico / Técnico</span><span class="text-xs text-vf-low">Registro formal y léxico preciso.</span></span>
+</button>
+<button type="button" role="radio" aria-checked="false" data-profile="concise" class="flex items-start gap-3 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span data-radio class="mt-[3px] w-3.5 h-3.5 shrink-0 rounded-full border-[#55555c] border-[1.5px]"></span>
+<span class="flex flex-col gap-0.5"><span class="text-[13.5px]">Conciso</span><span class="text-xs text-vf-low">Lo más breve posible, sin perder ideas.</span></span>
+</button>
+<button type="button" role="radio" aria-checked="false" data-profile="es-en" class="flex items-start gap-3 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span data-radio class="mt-[3px] w-3.5 h-3.5 shrink-0 rounded-full border-[#55555c] border-[1.5px]"></span>
+<span class="flex flex-col gap-0.5"><span class="text-[13.5px]">Español L1 → Inglés</span><span class="text-xs text-vf-low">Para inglés dictado por hispanohablantes: corrige calcos y falsos amigos.</span></span>
+</button>
 </div>
-
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">menu_book</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">Glosario</h2>
-        <p class="font-label-xs text-label-xs text-outline">Términos que el modelo nunca debe modificar</p>
-      </div>
-    </div>
-  </div>
-  <div class="flex items-center gap-2 pt-1">
-    <input id="glossary-input" type="text" maxlength="60" placeholder="Añadir término (Enter)" class="flex-1 bg-surface-container text-on-surface px-2.5 py-1.5 rounded font-label-md text-label-md focus:outline-none focus:ring-1 focus:ring-primary border border-surface-container-highest/40 placeholder:text-outline">
-    <button type="button" id="glossary-add" class="px-3 py-1.5 rounded bg-surface-container-highest hover:bg-surface-bright text-on-surface-variant hover:text-on-surface font-label-xs text-label-xs transition-colors">Añadir</button>
-  </div>
-  <div id="glossary-terms" class="flex flex-wrap gap-1.5"></div>
-</div>
-
-<details class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <summary class="cursor-pointer font-label-xs text-label-xs text-outline">Ver instrucciones enviadas al modelo</summary>
-  <pre id="prompt-preview" class="whitespace-pre-wrap font-label-xs text-label-xs text-on-surface-variant select-text"></pre>
-</details>
 </section>
+
+<section class="flex flex-col gap-3">
+<div class="flex flex-col gap-0.5">
+<h2 class="text-[15px] font-semibold">Reglas</h2>
+<div class="text-[12.5px] text-vf-low">Se aplican con cualquier tono.</div>
+</div>
+<div class="vf-list">
+<button type="button" role="switch" aria-checked="false" data-rule="removeFillers" class="flex items-center gap-4 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span class="flex-1 flex flex-col gap-0.5"><span class="text-[13.5px]">Eliminar muletillas y vacilaciones</span><span class="text-xs text-vf-low">Quita “eh”, “um”, “este”, “o sea”, “like”, “you know”.</span></span>
+<span data-track class="relative w-[34px] h-5 shrink-0 rounded-full bg-vf-stroke2 transition-colors"><span data-knob class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-vf-bright transition-transform"></span></span>
+</button>
+<button type="button" role="switch" aria-checked="false" data-rule="normalizeContractions" class="flex items-center gap-4 text-left px-4 py-3 bg-vf-rail cursor-pointer">
+<span class="flex-1 flex flex-col gap-0.5"><span class="text-[13.5px]">Expandir contracciones coloquiales</span><span class="text-xs text-vf-low">“gonna” → “going to”, “pa’” → “para”.</span></span>
+<span data-track class="relative w-[34px] h-5 shrink-0 rounded-full bg-vf-stroke2 transition-colors"><span data-knob class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-vf-bright transition-transform"></span></span>
+</button>
+</div>
+</section>
+
+<section class="flex flex-col gap-3">
+<div class="flex flex-col gap-0.5">
+<h2 class="text-[15px] font-semibold">Glosario</h2>
+<div class="text-[12.5px] text-vf-low">Términos que el modelo nunca debe modificar: nombres propios, marcas o jerga técnica.</div>
+</div>
+<div class="flex items-center gap-2">
+<input id="glossary-input" type="text" maxlength="60" placeholder="Añadir término" class="flex-1 bg-vf-field text-vf-ink border border-vf-rim rounded-md px-2.5 py-1.5 text-[13px] placeholder:text-vf-faint focus:ring-0 focus:border-vf-stroke2">
+<button type="button" id="glossary-add" class="vf-btn-solid py-[7px]">Añadir</button>
+</div>
+<div id="glossary-terms" class="flex flex-wrap gap-1.5"></div>
+</section>
+
+<details class="group border-t border-vf-line">
+<summary class="vf-summary"><span class="vf-chevron">▸</span>Avanzado</summary>
+<div class="flex flex-col gap-2 pt-1 pl-5">
+<div class="text-[13px]">Instrucciones enviadas al modelo</div>
+<pre id="prompt-preview" class="whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-vf-low select-text"></pre>
+</div>
+</details>
 </div>
 </main>
+</div>
 <script type="module" src="/src/settings.ts"></script>
 </body></html>

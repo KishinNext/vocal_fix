@@ -1,70 +1,45 @@
-<!DOCTYPE html><html class="dark" lang="es" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><title>VocalFix - Atajos de Teclado</title><link rel="stylesheet" href="/src/styles/settings.css"></head><body class="bg-background font-body-md text-on-surface antialiased select-none min-h-screen flex flex-col justify-between" data-page="shortcuts"><header class="fixed top-0 left-0 right-0 z-50 h-12 bg-background border-b border-white/[0.08] flex items-center pl-20 pr-4" style="-webkit-app-region: drag;"></header><main class="w-full pt-12 flex-1 bg-surface">
-<div class="w-full flex flex-col lg:flex-row min-h-[calc(100vh-3rem)]">
-<!-- Sidebar: rendered by src/settings/shared.ts (renderSettingsNav) -->
-<aside class="w-full lg:w-72 shrink-0 bg-surface-container-low lg:min-h-full flex flex-col p-4 gap-3">
-<button type="button" data-path="editor" title="Volver al Editor" class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm text-left">
-<span class="material-symbols-outlined text-[17px] text-outline">arrow_back</span>
-<span>Volver al editor</span>
-</button>
-<nav id="settings-nav" class="flex flex-col gap-1" data-active="atajos-teclado-hotkeys"></nav>
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VocalFix - Atajos de teclado</title>
+<link rel="stylesheet" href="/src/styles/app.css">
+</head>
+<body class="h-screen bg-vf-bg text-vf-ink font-sans antialiased select-none flex flex-col overflow-hidden" data-page="shortcuts">
+<!-- Window header: the left column is kept free for the macOS window buttons -->
+<header class="h-11 shrink-0 grid grid-cols-[120px_1fr_120px] items-center px-4 border-b border-vf-line bg-vf-chrome" style="-webkit-app-region: drag;">
+<div></div>
+<span class="text-center text-[12.5px] text-vf-dim">Configuración</span>
+<div></div>
+</header>
+<div class="flex-1 min-h-0 flex">
+<!-- Sidebar: sections rendered by src/settings/shared.ts (renderSettingsNav) -->
+<aside class="w-[232px] shrink-0 bg-vf-rail border-r border-vf-line px-2.5 py-5 flex flex-col gap-0.5">
+<button type="button" data-path="editor" class="text-left px-3 py-2 mb-3 text-[13px] text-vf-dim rounded-md cursor-pointer transition-colors hover:text-vf-ink">← Volver al editor</button>
+<nav id="settings-nav" class="flex flex-col gap-0.5" data-active="atajos-teclado-hotkeys"></nav>
 </aside>
-<section class="flex-1 flex flex-col bg-surface p-6 lg:p-10 gap-8 min-w-0 max-w-6xl">
-<div class="flex items-end justify-between gap-4">
-  <div class="flex flex-col gap-1">
-    <div class="flex items-center gap-2 font-label-xs text-label-xs text-outline uppercase tracking-wider">
-      <span>Configuración</span>
-      <span class="text-surface-container-highest">/</span>
-      <span class="text-primary">Entrada &amp; Control</span>
-    </div>
-    <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Atajos de Teclado</h1>
-  </div>
-  <p id="settings-status" role="status" class="hidden font-label-xs text-label-xs text-right"></p>
+<main class="flex-1 min-w-0 overflow-auto px-10 pt-10 pb-20">
+<div class="max-w-[820px] mx-auto flex flex-col gap-7">
+<header class="flex items-start justify-between gap-4">
+<div class="flex flex-col gap-1.5">
+<h1 class="text-[26px] font-semibold tracking-[-.01em] leading-tight">Atajos de teclado</h1>
+<p class="text-[13px] text-vf-dim">Los atajos globales funcionan aunque VocalFix esté en segundo plano.</p>
 </div>
+<p id="settings-status" role="status" class="hidden shrink-0 pt-2 text-xs text-right"></p>
+</header>
 
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">keyboard</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">Atajo Global</h2>
-        <p class="font-label-xs text-label-xs text-outline">Funciona aunque VocalFix esté en segundo plano</p>
-      </div>
-    </div>
-  </div>
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded bg-surface-container">
-    <div class="flex items-start gap-3">
-      <span class="material-symbols-outlined text-[18px] text-primary">mic</span>
-      <div class="flex flex-col gap-0.5">
-        <span class="font-body-sm text-body-sm font-medium text-on-surface">Iniciar / detener grabación</span>
-        <span class="font-label-xs text-label-xs text-on-surface-variant">Equivale a pulsar el botón de grabar del editor.</span>
-      </div>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      <div id="record-shortcut-keys" class="flex items-center gap-1"></div>
-      <button type="button" id="record-shortcut-change" class="px-2.5 py-1 rounded bg-surface-container-highest hover:bg-surface-bright text-on-surface-variant hover:text-on-surface font-label-xs text-label-xs transition-colors">Cambiar</button>
-      <button type="button" id="record-shortcut-disable" class="hidden px-2.5 py-1 rounded text-outline hover:text-error font-label-xs text-label-xs transition-colors">Desactivar</button>
-    </div>
-  </div>
-  <p class="font-label-xs text-label-xs text-outline">Usa al menos un modificador (⌘, ⌥, ⌃ o ⇧) junto a una letra, número o tecla especial.</p>
+<div class="vf-list">
+<div class="grid grid-cols-[minmax(0,1fr)_110px_minmax(0,1.3fr)] gap-4 px-4 py-2.5 bg-vf-chrome vf-label">
+<span>Acción</span><span>En el editor</span><span>Global</span>
 </div>
-
-<div class="flex flex-col gap-3 p-5 rounded-lg bg-surface-container-low border border-surface-container-highest/50">
-  <div class="flex items-center justify-between gap-3 pb-2 border-b border-surface-container-highest/50">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-[20px] text-primary">edit_note</span>
-      <div>
-        <h2 class="font-body-md text-body-md font-medium text-on-surface">En el Editor</h2>
-        <p class="font-label-xs text-label-xs text-outline">Atajos fijos dentro de la ventana principal</p>
-      </div>
-    </div>
-  </div>
-  <div class="flex items-center justify-between gap-3 p-3 rounded bg-surface-container">
-    <span class="font-body-sm text-body-sm text-on-surface">Iniciar / detener grabación</span>
-    <kbd class="px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-xs text-label-xs">Espacio</kbd>
-  </div>
+<div class="grid grid-cols-[minmax(0,1fr)_110px_minmax(0,1.3fr)] gap-4 items-center px-4 py-3.5 bg-vf-rail">
+<span class="text-[13.5px]">Iniciar / detener grabación</span>
+<span><kbd class="vf-kbd text-[11.5px] text-vf-soft">Espacio</kbd></span>
+<div id="record-shortcut" class="flex items-center gap-2.5 flex-wrap min-h-[26px]"></div>
 </div>
-</section>
+</div>
+<p class="text-[12.5px] text-vf-faint">Usa al menos un modificador (⌘ ⌥ ⌃ ⇧) junto a una letra, número o tecla especial. Esc cancela.</p>
 </div>
 </main>
+</div>
 <script type="module" src="/src/settings.ts"></script>
 </body></html>

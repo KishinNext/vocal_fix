@@ -4,28 +4,40 @@ import { byId, errorMessage, escapeHtml, showStatus } from './shared'
 let currentShortcut = ''
 let capturing = false
 
-function renderKeys(accelerator: string) {
-  const keys = byId('record-shortcut-keys')
-  if (!keys) return
-  const labels = acceleratorToLabels(accelerator)
-  keys.innerHTML = labels.length === 0
-    ? '<span class="font-label-xs text-label-xs text-outline">Desactivado</span>'
-    : labels.map(label => `<kbd class="px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface font-label-xs text-label-xs">${escapeHtml(label)}</kbd>`).join('')
-  byId('record-shortcut-disable')?.classList.toggle('hidden', !accelerator)
+const actionButton = (action: string, label: string, extra = '') =>
+  `<button type="button" data-action="${action}" class="vf-btn-text ${extra}">${label}</button>`
+
+// The global shortcut cell: its keys, the capture prompt, or "disabled"
+function render() {
+  const cell = byId('record-shortcut')
+  if (!cell) return
+  if (capturing) {
+    cell.innerHTML = '<span class="text-xs text-[#f0c88e] border border-dashed border-[#6a5530] rounded-[5px] px-2.5 py-[3px]">Pulsa la combinación…</span>' +
+      actionButton('cancel', 'Cancelar', 'text-vf-dim')
+    return
+  }
+  const labels = acceleratorToLabels(currentShortcut)
+  if (labels.length === 0) {
+    cell.innerHTML = '<span class="text-xs text-vf-faint">Desactivado</span>' + actionButton('change', 'Asignar')
+    return
+  }
+  const keys = labels
+    .map(label => `<kbd class="vf-kbd text-[11.5px] text-vf-ink border-vf-stroke">${escapeHtml(label)}</kbd>`)
+    .join('')
+  cell.innerHTML = `<div class="flex gap-[3px]">${keys}</div>` +
+    actionButton('change', 'Cambiar') + actionButton('disable', 'Desactivar', 'text-vf-faint')
 }
 
 function setCapturing(active: boolean) {
   capturing = active
-  const button = byId('record-shortcut-change')
-  if (button) button.textContent = active ? 'Presiona la combinación… (Esc cancela)' : 'Cambiar'
-  button?.classList.toggle('text-primary', active)
+  render()
 }
 
 async function applyShortcut(accelerator: string) {
   try {
     const { ok, settings } = await window.electronAPI.setRecordShortcut(accelerator)
     currentShortcut = settings.recordShortcut
-    renderKeys(currentShortcut)
+    render()
     if (ok) showStatus(accelerator ? 'Atajo actualizado' : 'Atajo desactivado')
     else showStatus('Esa combinación no está disponible (inválida o en uso por otra app)', 'error')
   } catch (e) {
@@ -34,8 +46,12 @@ async function applyShortcut(accelerator: string) {
 }
 
 export async function initShortcutsPage() {
-  byId('record-shortcut-change')?.addEventListener('click', () => setCapturing(!capturing))
-  byId('record-shortcut-disable')?.addEventListener('click', () => applyShortcut(''))
+  byId('record-shortcut')?.addEventListener('click', event => {
+    const action = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]')?.dataset.action
+    if (action === 'change') setCapturing(true)
+    else if (action === 'cancel') setCapturing(false)
+    else if (action === 'disable') void applyShortcut('')
+  })
 
   window.addEventListener('keydown', event => {
     if (!capturing) return
@@ -52,7 +68,7 @@ export async function initShortcutsPage() {
 
   try {
     currentShortcut = (await window.electronAPI.getSettings()).recordShortcut
-    renderKeys(currentShortcut)
+    render()
   } catch (e) {
     showStatus(errorMessage(e), 'error')
   }

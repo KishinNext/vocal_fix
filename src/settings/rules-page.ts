@@ -4,19 +4,16 @@ import { byId, errorMessage, escapeHtml, showStatus } from './shared'
 let settings: AppSettings | null = null
 
 function renderProfiles() {
-  document.querySelectorAll<HTMLButtonElement>('[data-profile]').forEach(card => {
-    const active = card.dataset.profile === settings?.profile
-    card.classList.toggle('border-primary/50', active)
-    card.classList.toggle('bg-surface-container-high', active)
-    card.classList.toggle('border-transparent', !active)
-    card.classList.toggle('bg-surface-container', !active)
-    card.setAttribute('aria-checked', String(active))
-    const icon = card.querySelector('[data-radio]')
-    if (icon) {
-      icon.textContent = active ? 'radio_button_checked' : 'radio_button_unchecked'
-      icon.classList.toggle('text-primary', active)
-      icon.classList.toggle('text-outline', !active)
-    }
+  document.querySelectorAll<HTMLButtonElement>('[data-profile]').forEach(row => {
+    const active = row.dataset.profile === settings?.profile
+    row.classList.toggle('bg-[#202023]', active)
+    row.classList.toggle('bg-vf-rail', !active)
+    row.setAttribute('aria-checked', String(active))
+    const radio = row.querySelector('[data-radio]')
+    radio?.classList.toggle('border-4', active)
+    radio?.classList.toggle('border-vf-amber', active)
+    radio?.classList.toggle('border-[1.5px]', !active)
+    radio?.classList.toggle('border-[#55555c]', !active)
   })
 }
 
@@ -24,23 +21,22 @@ function renderToggles() {
   document.querySelectorAll<HTMLButtonElement>('[data-rule]').forEach(toggle => {
     const on = Boolean(settings?.rules[toggle.dataset.rule as keyof GrammarRules])
     toggle.setAttribute('aria-checked', String(on))
-    toggle.classList.toggle('bg-primary', on)
-    toggle.classList.toggle('bg-surface-container-highest', !on)
-    toggle.querySelector('span')?.classList.toggle('translate-x-4', on)
+    const track = toggle.querySelector('[data-track]')
+    track?.classList.toggle('bg-vf-amber', on)
+    track?.classList.toggle('bg-vf-stroke2', !on)
+    toggle.querySelector('[data-knob]')?.classList.toggle('translate-x-[14px]', on)
   })
 }
 
 function renderGlossary() {
   const container = byId('glossary-terms')
   if (!container || !settings) return
-  container.innerHTML = settings.glossary.length === 0
-    ? '<span class="font-label-xs text-label-xs text-outline">Sin términos. Ej.: nombres propios, marcas o jerga técnica.</span>'
-    : settings.glossary.map(term => `
-        <span class="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded bg-surface-container-high text-on-surface font-label-xs text-label-xs">
-          ${escapeHtml(term)}
-          <button type="button" data-remove-term="${escapeHtml(term)}" title="Quitar"
-            class="material-symbols-outlined text-[13px] text-outline hover:text-error">close</button>
-        </span>`).join('')
+  container.innerHTML = settings.glossary.map(term => `
+    <span class="flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-md bg-vf-raised border border-vf-chip text-xs">
+      ${escapeHtml(term)}
+      <button type="button" data-remove-term="${escapeHtml(term)}" title="Quitar"
+        class="w-4 h-4 leading-none rounded text-vf-faint cursor-pointer hover:text-vf-red">×</button>
+    </span>`).join('')
 }
 
 async function renderPromptPreview() {
