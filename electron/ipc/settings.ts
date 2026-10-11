@@ -9,7 +9,7 @@ import { getMainWindow } from '../windows'
 // Renderer-editable settings. Models and the shortcut have dedicated handlers
 // because changing them has side effects (loading a model, registering a hotkey).
 const EDITABLE_KEYS: (keyof AppSettings)[] = [
-  'language', 'intervention', 'temperature', 'profile', 'rules', 'glossary', 'prompts',
+  'language', 'intervention', 'temperature', 'profile', 'rules', 'glossary', 'prompts', 'checkUpdates',
 ]
 
 function toggleRecordingInEditor() {

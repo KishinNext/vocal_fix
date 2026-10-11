@@ -34,6 +34,7 @@
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "electron-updater": "^6.8.9",
     "node-llama-cpp": "^3.21.1"
   },
   "description": "Dictado local con corrección gramatical, sin conexión.",
@@ -87,6 +88,11 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "KishinNext",
+      "repo": "vocal_fix"
     }
   }
 }

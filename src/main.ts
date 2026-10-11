@@ -1,6 +1,7 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
 import { initToneSelect } from './tone-select'
+import { initUpdateNotice } from './update-notice'
 import { Speaker } from './speech'
 import { TranscriptView } from './transcript-view'
 import {
@@ -16,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   const api = window.electronAPI
   if (!api) return
+
+  const updateNotice = document.getElementById('update-notice') as HTMLButtonElement | null
+  if (updateNotice) initUpdateNotice(updateNotice)
 
   const transcriptionEl = document.getElementById('live-transcription')
   const reviewEl = document.getElementById('grammar-review-container')

@@ -1,4 +1,5 @@
 import { initNavigation } from './navigation'
+import { initAbout } from './settings/about'
 import { renderSettingsNav } from './settings/shared'
 import { initModelsPage } from './settings/models-page'
 import { initRulesPage } from './settings/rules-page'
@@ -15,6 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (nav) renderSettingsNav(nav)
   initNavigation();
 
+  if (!window.electronAPI) return
+  const about = document.getElementById('settings-about')
+  if (about) void initAbout(about)
+
   const initPage = PAGE_INITIALIZERS[document.body.dataset.page ?? '']
-  if (initPage && window.electronAPI) await initPage()
+  if (initPage) await initPage()
 })

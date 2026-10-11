@@ -27,6 +27,7 @@ export interface AppSettings {
   glossary: string[]
   prompts: CustomPrompts
   recordShortcut: string // Electron accelerator; '' disables it
+  checkUpdates: boolean  // look for a newer release when the app starts
 }
 
 export const LANGUAGES: Language[] = ['es', 'en', 'auto']
@@ -50,6 +51,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   glossary: [],
   prompts: { grammar: '', natural: '' },
   recordShortcut: 'CommandOrControl+Shift+Space',
+  checkUpdates: true,
 }
 
 const MAX_GLOSSARY_TERMS = 100
@@ -98,5 +100,6 @@ export function sanitizeSettings(input: unknown, base: AppSettings = DEFAULT_SET
     glossary,
     prompts: { grammar: prompt('grammar'), natural: prompt('natural') },
     recordShortcut: typeof raw.recordShortcut === 'string' ? raw.recordShortcut : base.recordShortcut,
+    checkUpdates: typeof raw.checkUpdates === 'boolean' ? raw.checkUpdates : base.checkUpdates,
   }
 }
