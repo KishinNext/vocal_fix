@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { aiManager } from './ai'
 import { registerAppScheme, serveApp } from './appProtocol'
 import { whisperServer } from './whisperServer'
+import { checkForUpdates } from './updates'
 import { createWindow } from './windows'
 import { registerIpcHandlers, registerRecordShortcut } from './ipc'
 
@@ -34,6 +35,7 @@ app.whenReady().then(() => {
   mainWindow.webContents.once('did-finish-load', () => {
     aiManager.ensureLlama().catch(e => console.error('Failed to load LLM', e))
     whisperServer.ensure().catch(e => console.warn('Whisper server not started:', e.message))
+    void checkForUpdates()
   })
 
   app.on('activate', () => {

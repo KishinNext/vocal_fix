@@ -5,6 +5,8 @@ import type { Llama, LlamaChatSession, LlamaContext, LlamaModel } from 'node-lla
 import type { LlmRequest, LlmResponse } from './llmProtocol'
 
 const LLM_CONTEXT_SIZE = 4096
+// Replies are about as long as the dictated sentence: stops a model that starts rambling
+const MAX_REPLY_TOKENS = 400
 
 let llama: Llama | null = null
 let model: LlamaModel | null = null
@@ -38,8 +40,15 @@ async function handle(request: LlmRequest): Promise<string> {
   if (request.type === 'load') return ''
   // Each prompt is independent: reset history so the context never fills up
   // and prompt/rule changes from Settings apply immediately.
-  chat.setChatHistory([{ type: 'system', text: request.systemPrompt }])
-  return (await chat.prompt(request.text, { temperature: request.temperature })).trim()
+  chat.setChatHistory([
+    { type: 'system', text: request.systemPrompt },
+    ...request.examples.flatMap(({ transcript, reply }) => [
+      { type: 'user' as const, text: transcript },
+      { type: 'model' as const, response: [reply] },
+    ]),
+  ])
+  const reply = await chat.prompt(request.text, { temperature: request.temperature, maxTokens: MAX_REPLY_TOKENS })
+  return reply.trim()
 }
 
 // One chat session is shared, so requests run one at a time, in arrival order

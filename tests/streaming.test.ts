@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SpeechSegmenter, type SegmentEvent } from '../electron/speechSegmenter'
 import { StreamSession, type StreamChannel, type SegmentText } from '../electron/streamSession'
+import { endsSentence } from '../electron/sentenceEnd'
 import { cleanTranscript } from '../electron/transcript'
 import { SAMPLE_RATE, encodeWav } from '../electron/wav'
 import { diffWords } from '../src/word-diff'
@@ -31,15 +32,82 @@ describe('SpeechSegmenter', () => {
     expect(new SpeechSegmenter().push(silence(3000))).toEqual([])
   })
 
-  it('closes an utterance after the configured pause', () => {
+  it('reports the utterance so far after a short pause, without closing it', () => {
+    // Arrange
     const segmenter = new SpeechSegmenter({ silenceMs: 700 })
-    expect(ofType(segmenter.push(concat(silence(500), speech(600), silence(600))), 'final')).toEqual([])
+    segmenter.push(concat(silence(500), speech(600), silence(600)))
 
+    // Act
+    const events = segmenter.push(silence(200))
+
+    // Assert
+    expect(events.map(e => e.type)).toEqual(['pause'])
+    // pre-roll + speech + a short silent tail
+    expect(events[0].audio.length).toBe(samples(200 + 600 + 300))
+  })
+
+  it('closes an utterance after a long pause', () => {
+    // Arrange
+    const segmenter = new SpeechSegmenter({ silenceMs: 700, maxPauseMs: 2000 })
+    segmenter.push(concat(silence(500), speech(600), silence(1900)))
+
+    // Act
     const [final] = segmenter.push(silence(200))
-    expect(final.type).toBe('final')
-    expect(final.segment).toBe(1)
-    // pre-roll + speech + the pause that closed it
-    expect(final.audio.length).toBe(samples(200 + 600 + 700))
+
+    // Assert
+    expect(final).toMatchObject({ type: 'final', segment: 1, settled: true })
+    expect(final.audio.length).toBe(samples(200 + 600 + 300))
+  })
+
+  it('keeps the utterance open when speech resumes after a short pause', () => {
+    // Arrange
+    const segmenter = new SpeechSegmenter()
+
+    // Act
+    const events = segmenter.push(concat(speech(600), silence(900), speech(600), silence(2100)))
+
+    // Assert
+    expect(ofType(events, 'final').map(f => f.segment)).toEqual([1])
+    expect(ofType(events, 'pause')).toHaveLength(2)
+  })
+
+  it('cuts a long pause inside an utterance down to a short gap', () => {
+    // Arrange
+    const segmenter = new SpeechSegmenter()
+
+    // Act
+    const events = segmenter.push(concat(speech(600), silence(1500), speech(600)))
+    const [final] = segmenter.flush()
+
+    // Assert
+    expect(ofType(events, 'final')).toEqual([])
+    expect(final.audio.length).toBe(samples(600 + 300 + 600))
+  })
+
+  it('ends a paused utterance on request, and only while it is still paused', () => {
+    // Arrange
+    const segmenter = new SpeechSegmenter()
+    segmenter.push(concat(speech(600), silence(800)))
+
+    // Act
+    const ended = segmenter.endIfSettled(1)
+    const again = segmenter.endIfSettled(1)
+
+    // Assert
+    expect(ended.map(e => [e.type, e.settled])).toEqual([['final', true]])
+    expect(again).toEqual([])
+  })
+
+  it('does not end an utterance whose speaker is talking again', () => {
+    // Arrange
+    const segmenter = new SpeechSegmenter()
+    segmenter.push(concat(speech(600), silence(800), speech(200)))
+
+    // Act
+    const ended = segmenter.endIfSettled(1)
+
+    // Assert
+    expect(ended).toEqual([])
   })
 
   it('emits partials while the speaker keeps talking', () => {
@@ -57,18 +125,18 @@ describe('SpeechSegmenter', () => {
 
   it('numbers utterances in order', () => {
     const segmenter = new SpeechSegmenter()
-    const finals = ofType(segmenter.push(concat(speech(400), silence(800), speech(400), silence(800))), 'final')
+    const finals = ofType(segmenter.push(concat(speech(400), silence(2100), speech(400), silence(2100))), 'final')
     expect(finals.map(f => f.segment)).toEqual([1, 2])
   })
 
   it('discards clicks shorter than the minimum speech', () => {
     const [final] = new SpeechSegmenter({ minSpeechMs: 200 }).push(concat(speech(40), silence(800)))
-    expect(final).toEqual({ type: 'final', segment: 1, audio: new Int16Array(0) })
+    expect(final).toEqual({ type: 'final', segment: 1, audio: new Int16Array(0), settled: false })
   })
 
   it('handles chunks that do not align with frames', () => {
     const segmenter = new SpeechSegmenter()
-    const audio = concat(speech(500), silence(800))
+    const audio = concat(speech(500), silence(2100))
     const events: SegmentEvent[] = []
     for (let i = 0; i < audio.length; i += 1000) events.push(...segmenter.push(audio.slice(i, i + 1000)))
     expect(ofType(events, 'final')).toHaveLength(1)
@@ -96,7 +164,7 @@ describe('StreamSession', () => {
   function createSession(overrides: Partial<ConstructorParameters<typeof StreamSession>[0]> = {}) {
     const sent: [StreamChannel, SegmentText][] = []
     const deps = {
-      transcribe: vi.fn(async (pcm: Int16Array) => `said ${pcm.length}`),
+      transcribe: vi.fn(async (pcm: Int16Array) => `Said ${pcm.length}.`),
       correctGrammar: vi.fn(async (text: string) => `grammar(${text})`),
       rewriteNatural: vi.fn(async (text: string) => `natural(${text})`),
       send: (channel: StreamChannel, payload: SegmentText) => { sent.push([channel, payload]) },
@@ -129,7 +197,7 @@ describe('StreamSession', () => {
   })
 
   it('gives whisper the previous sentence as context', async () => {
-    const transcribe = vi.fn(async (pcm: Int16Array, _prompt: string) => `said ${pcm.length}`)
+    const transcribe = vi.fn(async (pcm: Int16Array, _prompt: string) => `Said ${pcm.length}.`)
     const { session } = createSession({ transcribe })
     session.push(concat(speech(400), silence(800)))
     await session.idle()
@@ -137,21 +205,72 @@ describe('StreamSession', () => {
     await session.idle()
     const [first, second] = transcribe.mock.calls
     expect(first[1]).toBe('')
-    expect(second[1]).toBe('said ' + first[0].length)
+    expect(second[1]).toBe(`Said ${first[0].length}.`)
   })
 
-  it('skips partials that fell behind a confirmed utterance', async () => {
+  it('skips the partials queued behind a finished sentence', async () => {
     let release!: () => void
     const transcribe = vi.fn()
       .mockImplementationOnce(() => new Promise<string>(r => { release = () => r('partial') }))
-      .mockResolvedValue('final text')
+      .mockResolvedValue('Final text.')
     const { session, sent } = createSession({ transcribe })
     session.push(speech(900))            // partial starts transcribing
-    session.push(concat(speech(900), silence(800))) // more partials + the final arrive meanwhile
+    session.push(concat(speech(900), silence(800))) // more partials + the pause arrive meanwhile
     release()
     await session.idle()
-    expect(sent.filter(([channel]) => channel === 'stream-partial')).toEqual([])
-    expect(transcribe).toHaveBeenCalledTimes(2) // the stale partial, then the final only
+    expect(sent.filter(([channel]) => channel === 'stream-final').map(([, p]) => p.text)).toEqual(['Final text.'])
+    expect(transcribe).toHaveBeenCalledTimes(2) // the stale partial, then the finished sentence
+  })
+
+  describe('pauses in the middle of a sentence', () => {
+    it('keeps one utterance when the speaker hesitates and goes on', async () => {
+      // Arrange
+      const transcribe = vi.fn()
+        .mockResolvedValueOnce('I would like')
+        .mockResolvedValue('I would like work.')
+      const { session, sent } = createSession({ transcribe })
+      session.push(concat(speech(600), silence(800)))
+      await session.idle()
+
+      // Act
+      session.push(concat(speech(400), silence(800)))
+      await session.idle()
+
+      // Assert
+      const finals = sent.filter(([channel]) => channel === 'stream-final')
+      expect(finals.map(([, payload]) => payload.text)).toEqual(['I would like work.'])
+      expect(sent[0]).toEqual(['stream-partial', { id: finals[0][1].id, text: 'I would like' }])
+    })
+
+    it('confirms an unfinished sentence after a long pause without transcribing it again', async () => {
+      // Arrange
+      const transcribe = vi.fn().mockResolvedValue('I would like')
+      const { session, sent } = createSession({ transcribe })
+
+      // Act
+      session.push(concat(speech(600), silence(2100)))
+      await session.idle()
+
+      // Assert
+      expect(transcribe).toHaveBeenCalledTimes(1)
+      expect(sent.filter(([channel]) => channel === 'stream-final').map(([, p]) => p.text)).toEqual(['I would like'])
+    })
+
+    it('transcribes again when more was said after the pause', async () => {
+      // Arrange
+      const transcribe = vi.fn()
+        .mockResolvedValueOnce('I would like')
+        .mockResolvedValue('I would like to')
+      const { session, sent } = createSession({ transcribe })
+
+      // Act
+      session.push(concat(speech(600), silence(800), speech(300)))
+      session.stop()
+      await session.idle()
+
+      // Assert
+      expect(sent.filter(([channel]) => channel === 'stream-final').map(([, p]) => p.text)).toEqual(['I would like to'])
+    })
   })
 
   describe('when transcription is slower than the partial step', () => {
@@ -525,5 +644,24 @@ describe('speech', () => {
       expect(second).toHaveBeenCalledTimes(1)
       expect(speaker.isSpeaking).toBe(false)
     })
+  })
+})
+
+describe('endsSentence()', () => {
+  it.each([
+    ['I would like to work.', true],
+    ['¿Vienes mañana?', true],
+    ['She said "yes."', true],
+    ['I would like', false],
+    ['I would like.', false],       // whisper often adds a period after a dangling word
+    ['Quiero hablar de.', false],
+    ['Well, I think...', false],
+    ['', false],
+  ])('%j -> %s', (text, expected) => {
+    // Act
+    const complete = endsSentence(text)
+
+    // Assert
+    expect(complete).toBe(expected)
   })
 })

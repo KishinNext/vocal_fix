@@ -16,6 +16,7 @@
 <aside class="w-[232px] shrink-0 bg-vf-rail border-r border-vf-line px-2.5 py-5 flex flex-col gap-0.5">
 <button type="button" data-path="editor" class="text-left px-3 py-2 mb-3 text-[13px] text-vf-dim rounded-md cursor-pointer transition-colors hover:text-vf-ink">← Volver al editor</button>
 <nav id="settings-nav" class="flex flex-col gap-0.5" data-active="reglas-gramaticales-estilo"></nav>
+<div id="settings-about" class="mt-auto px-3 pt-4 flex flex-col gap-1.5 text-xs text-vf-low"></div>
 </aside>
 <main class="flex-1 min-w-0 overflow-auto px-10 pt-10 pb-20">
 <div class="max-w-[720px] mx-auto flex flex-col gap-8">
@@ -87,9 +88,36 @@
 
 <details class="group border-t border-vf-line">
 <summary class="vf-summary"><span class="vf-chevron">▸</span>Avanzado</summary>
-<div class="flex flex-col gap-2 pt-1 pl-5">
-<div class="text-[13px]">Instrucciones enviadas al modelo</div>
-<pre id="prompt-preview" class="whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-vf-low select-text"></pre>
+<div class="flex flex-col gap-7 pt-1 pl-5">
+<p class="text-[12.5px] text-vf-low max-w-[620px]">Estas son las instrucciones base de cada paso. El tono, las reglas y el glosario de arriba se añaden al final automáticamente. Si escribes las tuyas, dejan de usarse los ejemplos integrados que acompañan a las predeterminadas.</p>
+<div class="flex flex-col gap-2">
+<div class="flex items-end justify-between gap-3">
+<div class="flex flex-col gap-0.5">
+<label for="prompt-grammar" class="text-[13px]">Instrucciones de corrección</label>
+<div class="text-xs text-vf-low">Paso 1: corrige errores sin cambiar tus palabras (columna Corrección).</div>
+</div>
+<button type="button" data-restore-prompt="grammar" class="vf-btn-text shrink-0">Restaurar</button>
+</div>
+<textarea id="prompt-grammar" data-prompt="grammar" rows="7" spellcheck="false" class="w-full bg-vf-field text-vf-ink border border-vf-rim rounded-md px-3 py-2 font-mono text-[11.5px] leading-relaxed select-text focus:ring-0 focus:border-vf-stroke2"></textarea>
+<details class="group/full">
+<summary class="flex items-center gap-2 text-xs text-vf-low cursor-pointer hover:text-vf-ink"><span class="font-mono w-3 transition-transform group-open/full:rotate-90">▸</span>Texto completo que recibe el modelo</summary>
+<pre id="prompt-sent-grammar" class="mt-2 whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-vf-low select-text"></pre>
+</details>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-end justify-between gap-3">
+<div class="flex flex-col gap-0.5">
+<label for="prompt-natural" class="text-[13px]">Instrucciones de sugerencia</label>
+<div class="text-xs text-vf-low">Paso 2: reescribe la frase para que suene natural (columna Sugerencia).</div>
+</div>
+<button type="button" data-restore-prompt="natural" class="vf-btn-text shrink-0">Restaurar</button>
+</div>
+<textarea id="prompt-natural" data-prompt="natural" rows="7" spellcheck="false" class="w-full bg-vf-field text-vf-ink border border-vf-rim rounded-md px-3 py-2 font-mono text-[11.5px] leading-relaxed select-text focus:ring-0 focus:border-vf-stroke2"></textarea>
+<details class="group/full">
+<summary class="flex items-center gap-2 text-xs text-vf-low cursor-pointer hover:text-vf-ink"><span class="font-mono w-3 transition-transform group-open/full:rotate-90">▸</span>Texto completo que recibe el modelo</summary>
+<pre id="prompt-sent-natural" class="mt-2 whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-vf-low select-text"></pre>
+</details>
+</div>
 </div>
 </details>
 </div>

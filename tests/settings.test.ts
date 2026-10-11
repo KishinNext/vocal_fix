@@ -2,14 +2,19 @@
  * VocalFix – Settings logic tests (pure modules shared by main and renderer)
  */
 
+import { mkdtempSync, readFileSync, readdirSync } from 'fs'
+import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, DEFAULT_TEMPERATURE, PROFILES, sanitizeSettings } from '../electron/settingsSchema'
-import { buildGrammarPrompt, buildSystemPrompt } from '../electron/prompt'
+import { DEFAULT_PROMPTS, buildGrammarPrompt, buildSystemPrompt, promptExamples, wrapTranscript } from '../electron/prompt'
 import { LLM_MODELS, WHISPER_MODELS, findCatalogModel, isLlmFile, isWhisperFile, modelDisplayName, recommendedModels,
 } from '../electron/modelCatalog'
 import { acceleratorToLabels, eventToAccelerator, modifierHint } from '../src/settings/accelerator'
 import { resolveAppFile } from '../electron/appFiles'
+import { downloadModel } from '../electron/modelDownloader'
+import { updateNoticeText, updateStatusText, type UpdateState } from '../electron/updateState'
+import { isNewerVersion } from '../electron/version'
 import { isServerProcess } from '../electron/whisperOrphan'
 import { SETTINGS_SECTIONS, errorMessage, escapeHtml, formatBytes, memoryFit, renderSettingsNav } from '../src/settings/shared'
 
@@ -74,7 +79,7 @@ describe('buildGrammarPrompt()', () => {
   it('only fixes errors and ignores tone and intervention', () => {
     const casual = buildGrammarPrompt({ ...DEFAULT_SETTINGS, profile: 'conversational', intervention: 'creative' })
     const formal = buildGrammarPrompt({ ...DEFAULT_SETTINGS, profile: 'business', intervention: 'minimal' })
-    expect(casual).toContain('do not rephrase')
+    expect(casual).toContain('Change as little as possible')
     expect(casual).toEqual(formal)
   })
 
@@ -434,5 +439,221 @@ describe('resolveAppFile()', () => {
 
     // Assert
     expect(file).toBeNull()
+  })
+})
+
+describe('downloadModel() retries', () => {
+  const model = { ...WHISPER_MODELS[0], file: 'test-model.bin', sizeBytes: 10 }
+  const fast = { retryDelayMs: 1, stallTimeoutMs: 200 }
+  const newDir = () => mkdtempSync(join(tmpdir(), 'vocalfix-download-'))
+
+  // A response whose connection drops after sending `sent`
+  function broken(sent: string) {
+    return new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sent))
+        // Fail once those bytes have reached the disk
+        setTimeout(() => controller.error(new Error('connection reset')), 30)
+      },
+    }))
+  }
+
+  it('continues from the bytes already received after a dropped connection', async () => {
+    // Arrange
+    const dir = newDir()
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(broken('01234'))
+      .mockResolvedValueOnce(new Response('56789', { status: 206 }))
+
+    // Act
+    await downloadModel(model, dir, vi.fn(), { ...fast, fetch })
+
+    // Assert
+    expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
+    expect(fetch.mock.calls[1][1].headers).toEqual({ Range: 'bytes=5-' })
+  })
+
+  it('starts over when the server ignores the resume request', async () => {
+    // Arrange
+    const dir = newDir()
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(broken('01234'))
+      .mockResolvedValueOnce(new Response('0123456789', { status: 200 }))
+
+    // Act
+    await downloadModel(model, dir, vi.fn(), { ...fast, fetch })
+
+    // Assert
+    expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
+  })
+
+  it('gives up after the last attempt and leaves no partial file', async () => {
+    // Arrange
+    const dir = newDir()
+    const fetch = vi.fn().mockRejectedValue(new Error('network down'))
+
+    // Act
+    const result = downloadModel(model, dir, vi.fn(), { ...fast, fetch, maxAttempts: 3 })
+
+    // Assert
+    await expect(result).rejects.toThrow('network down')
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(readdirSync(dir)).toEqual([])
+  })
+
+  it('does not retry a file that does not exist', async () => {
+    // Arrange
+    const fetch = vi.fn().mockResolvedValue(new Response('', { status: 404, statusText: 'Not Found' }))
+
+    // Act
+    const result = downloadModel(model, newDir(), vi.fn(), { ...fast, fetch })
+
+    // Assert
+    await expect(result).rejects.toThrow('Descarga fallida (404 Not Found)')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries a connection that stops sending data', async () => {
+    // Arrange
+    const dir = newDir()
+    const stalled = (_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener('abort', () => reject(init.signal!.reason))
+    })
+    const fetch = vi.fn().mockImplementationOnce(stalled).mockResolvedValueOnce(new Response('0123456789'))
+
+    // Act
+    await downloadModel(model, dir, vi.fn(), { ...fast, fetch, stallTimeoutMs: 30 })
+
+    // Assert
+    expect(readFileSync(join(dir, model.file), 'utf-8')).toBe('0123456789')
+  })
+})
+
+describe('custom prompts', () => {
+  const custom = sanitizeSettings({ prompts: { grammar: '  Corrige solo la ortografía.  ', natural: '' } })
+
+  it('keeps the trimmed text and falls back to the built-in one when empty', () => {
+    // Assert
+    expect(custom.prompts).toEqual({ grammar: 'Corrige solo la ortografía.', natural: '' })
+    expect(buildSystemPrompt(custom)).toContain(DEFAULT_PROMPTS.natural)
+  })
+
+  it('replaces the built-in instructions and still appends the rules', () => {
+    // Act
+    const prompt = buildGrammarPrompt(custom)
+
+    // Assert
+    expect(prompt.startsWith('Corrige solo la ortografía.')).toBe(true)
+    expect(prompt).not.toContain(DEFAULT_PROMPTS.grammar)
+    expect(prompt).toContain('Remove filler words')
+  })
+
+  it('uses the built-in examples only with the built-in instructions', () => {
+    // Act
+    const withCustom = promptExamples('grammar', custom)
+    const withDefault = promptExamples('natural', custom)
+
+    // Assert
+    expect(withCustom).toEqual([])
+    expect(withDefault.length).toBeGreaterThan(0)
+    expect(withDefault.every(example => example.transcript.startsWith('Transcript in '))).toBe(true)
+  })
+
+  it.each([
+    ['What is the capital of France?', 'Transcript in English: What is the capital of France?'],
+    ['¿Dónde está la oficina?', 'Transcript in Spanish: ¿Dónde está la oficina?'],
+  ])('labels %j as a transcript in its language', (text, expected) => {
+    // Act
+    const wrapped = wrapTranscript(text)
+
+    // Assert
+    expect(wrapped).toBe(expected)
+  })
+})
+
+describe('isNewerVersion()', () => {
+  it.each([
+    ['v0.2.0', '0.1.0', true],
+    ['0.1.10', '0.1.9', true],
+    ['v1.0.0', '0.9.9', true],
+    ['v0.1.0', '0.1.0', false],
+    ['v0.0.9', '0.1.0', false],
+    ['nightly', '0.1.0', false],
+    ['', '0.1.0', false],
+  ])('%j against %j -> %s', (candidate, current, expected) => {
+    // Act
+    const newer = isNewerVersion(candidate, current)
+
+    // Assert
+    expect(newer).toBe(expected)
+  })
+})
+
+describe('update texts', () => {
+  const state = (patch: Partial<UpdateState>): UpdateState => ({
+    current: '0.1.0', latest: null, url: '', phase: 'idle', percent: 0, message: '', installsInApp: false, ...patch,
+  })
+
+  it.each([
+    [state({}), '', 'Estás al día'],
+    [state({ phase: 'checking' }), '', 'Buscando actualizaciones…'],
+    [state({ phase: 'error', message: 'fetch failed' }), '', 'No se pudo comprobar: fetch failed'],
+    [state({ latest: '0.2.0', phase: 'available' }), 'Nueva versión 0.2.0', 'Nueva versión 0.2.0'],
+    [state({ latest: '0.2.0', phase: 'downloading', percent: 42 }), 'Descargando 42%', 'Descargando 42%'],
+    [state({ latest: '0.2.0', phase: 'error' }), 'Actualización fallida · Reintentar', 'Actualización fallida · Reintentar'],
+  ])('%j', (updateState, notice, status) => {
+    // Act
+    const texts = [updateNoticeText(updateState), updateStatusText(updateState)]
+
+    // Assert
+    expect(texts).toEqual([notice, status])
+  })
+})
+
+describe('update notice', () => {
+  const available: UpdateState = {
+    current: '0.1.0', latest: '0.2.0', url: 'https://example.test/release', phase: 'available', percent: 0, message: '',
+    installsInApp: false,
+  }
+
+  function mount(initial: UpdateState) {
+    document.body.innerHTML = '<button id="update-notice" class="hidden"></button>'
+    const button = document.getElementById('update-notice') as HTMLButtonElement
+    const api = {
+      getUpdateState: vi.fn().mockResolvedValue(initial),
+      onUpdateState: vi.fn(),
+      installUpdate: vi.fn().mockResolvedValue(undefined),
+    }
+    ;(window as any).electronAPI = api
+    return { button, api }
+  }
+
+  it('stays hidden when there is nothing newer', async () => {
+    // Arrange
+    const { initUpdateNotice } = await import('../src/update-notice')
+    const { button, api } = mount({ ...available, latest: null, phase: 'idle' })
+
+    // Act
+    initUpdateNotice(button)
+    await api.getUpdateState.mock.results[0].value
+
+    // Assert
+    expect(button.classList.contains('hidden')).toBe(true)
+  })
+
+  it('announces a newer version and only starts the update when clicked', async () => {
+    // Arrange
+    const { initUpdateNotice } = await import('../src/update-notice')
+    const { button, api } = mount(available)
+    initUpdateNotice(button)
+    await vi.waitFor(() => expect(button.textContent).toBe('Nueva versión 0.2.0'))
+    const startedBeforeClick = api.installUpdate.mock.calls.length
+
+    // Act
+    button.click()
+
+    // Assert
+    expect(startedBeforeClick).toBe(0)
+    expect(api.installUpdate).toHaveBeenCalledTimes(1)
   })
 })

@@ -3,6 +3,14 @@
 const SAMPLE_RATE = 16000
 // The worklet yields 128-sample blocks (~8ms); batching them keeps IPC to ~10 messages/s
 const BATCH_SAMPLES = SAMPLE_RATE / 10
+// The level meter gets the loudest of every 8 blocks (~64ms)
+const LEVEL_BLOCKS = 8
+
+function rms(block: Int16Array): number {
+  let sum = 0
+  for (const sample of block) sum += (sample / 32768) ** 2
+  return Math.sqrt(sum / block.length)
+}
 
 export class AudioRecorder {
   private stream: MediaStream | null = null;
@@ -14,6 +22,9 @@ export class AudioRecorder {
   private batch: Int16Array[] = [];
   private batchSamples = 0;
   private onData: ((pcm: Int16Array) => void) | null = null;
+  private onLevel: ((rms: number) => void) | null = null;
+  private levelPeak = 0;
+  private levelBlocks = 0;
 
   async getMicrophones(): Promise<MediaDeviceInfo[]> {
     try {
@@ -32,8 +43,12 @@ export class AudioRecorder {
     this.currentDeviceId = deviceId;
   }
 
-  startRecording(onData: (pcm: Int16Array) => void): Promise<void> {
+  // onLevel receives the microphone level (RMS in [0, 1]) about 15 times a second
+  startRecording(onData: (pcm: Int16Array) => void, onLevel?: (rms: number) => void): Promise<void> {
     this.onData = onData;
+    this.onLevel = onLevel ?? null;
+    this.levelPeak = 0;
+    this.levelBlocks = 0;
     this.batch = [];
     this.batchSamples = 0;
     this.starting = this.open().finally(() => { this.starting = null; });
@@ -65,6 +80,12 @@ export class AudioRecorder {
 
   private collect(block: Int16Array) {
     this.batch.push(block);
+    this.levelPeak = Math.max(this.levelPeak, rms(block));
+    if (++this.levelBlocks >= LEVEL_BLOCKS) {
+      this.onLevel?.(this.levelPeak);
+      this.levelPeak = 0;
+      this.levelBlocks = 0;
+    }
     this.batchSamples += block.length;
     if (this.batchSamples >= BATCH_SAMPLES) this.flush();
   }
@@ -92,6 +113,7 @@ export class AudioRecorder {
     this.stream?.getTracks().forEach(track => track.stop());
     this.flush();
     this.onData = null;
+    this.onLevel = null;
     this.workletNode = null;
     this.source = null;
     this.audioContext = null;

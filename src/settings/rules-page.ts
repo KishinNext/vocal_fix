@@ -1,4 +1,4 @@
-import type { AppSettings, GrammarRules, Profile } from '../../electron/settingsSchema'
+import type { AppSettings, CustomPrompts, GrammarRules, Profile } from '../../electron/settingsSchema'
 import { byId, errorMessage, escapeHtml, showStatus } from './shared'
 
 let settings: AppSettings | null = null
@@ -39,9 +39,23 @@ function renderGlossary() {
     </span>`).join('')
 }
 
-async function renderPromptPreview() {
-  const preview = byId('prompt-preview')
-  if (preview) preview.textContent = await window.electronAPI.getSystemPrompt()
+const PROMPT_KINDS: (keyof CustomPrompts)[] = ['grammar', 'natural']
+
+// Each box shows the user's instructions, or the built-in ones while they have none
+async function renderPrompts() {
+  if (!settings) return
+  const { defaults, sent } = await window.electronAPI.getPrompts()
+  for (const kind of PROMPT_KINDS) {
+    const box = byId<HTMLTextAreaElement>(`prompt-${kind}`)
+    const full = byId(`prompt-sent-${kind}`)
+    if (box) {
+      box.value = settings.prompts[kind] || defaults[kind]
+      box.dataset.default = defaults[kind]
+    }
+    if (full) full.textContent = sent[kind]
+    document.querySelector<HTMLElement>(`[data-restore-prompt="${kind}"]`)
+      ?.classList.toggle('invisible', !settings.prompts[kind])
+  }
 }
 
 async function save(patch: Partial<AppSettings>) {
@@ -50,7 +64,7 @@ async function save(patch: Partial<AppSettings>) {
     renderProfiles()
     renderToggles()
     renderGlossary()
-    await renderPromptPreview()
+    await renderPrompts()
     showStatus('Guardado')
   } catch (e) {
     showStatus(errorMessage(e), 'error')
@@ -86,12 +100,25 @@ export async function initRulesPage() {
     if (term && settings) void save({ glossary: settings.glossary.filter(t => t !== term) })
   })
 
+  for (const kind of PROMPT_KINDS) {
+    const box = byId<HTMLTextAreaElement>(`prompt-${kind}`)
+    box?.addEventListener('change', () => {
+      if (!settings) return
+      // Text equal to the built-in instructions is not a customisation
+      const text = box.value.trim()
+      void save({ prompts: { ...settings.prompts, [kind]: text === box.dataset.default ? '' : text } })
+    })
+    document.querySelector(`[data-restore-prompt="${kind}"]`)?.addEventListener('click', () => {
+      if (settings) void save({ prompts: { ...settings.prompts, [kind]: '' } })
+    })
+  }
+
   try {
     settings = await window.electronAPI.getSettings()
     renderProfiles()
     renderToggles()
     renderGlossary()
-    await renderPromptPreview()
+    await renderPrompts()
   } catch (e) {
     showStatus(errorMessage(e), 'error')
   }

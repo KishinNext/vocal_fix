@@ -1,9 +1,13 @@
 import { AudioRecorder } from './audio-recorder'
 import { initNavigation } from './navigation'
 import { initToneSelect } from './tone-select'
+import { initUpdateNotice } from './update-notice'
 import { Speaker } from './speech'
 import { TranscriptView } from './transcript-view'
-import { fillMicrophoneSelect, formatElapsed, isTypingTarget, renderRecordButton, type RecordState } from './editor'
+import {
+  createLevelMeter, fillMicrophoneSelect, formatElapsed, isTypingTarget, renderEngineDot, renderRecordButton,
+  restingRecordState, type RecordState,
+} from './editor'
 import { modelDisplayName } from '../electron/modelCatalog'
 
 const COPY_FEEDBACK_MS = 1800
@@ -13,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   const api = window.electronAPI
   if (!api) return
+
+  const updateNotice = document.getElementById('update-notice') as HTMLButtonElement | null
+  if (updateNotice) initUpdateNotice(updateNotice)
 
   const transcriptionEl = document.getElementById('live-transcription')
   const reviewEl = document.getElementById('grammar-review-container')
@@ -29,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 
   const audioRecorder = new AudioRecorder()
+  const levelEl = document.getElementById('mic-level')
+  const levelMeter = levelEl ? createLevelMeter(levelEl) : null
   if (micSelect) {
     audioRecorder.getMicrophones().then(devices => fillMicrophoneSelect(micSelect, devices))
     micSelect.addEventListener('change', () => audioRecorder.setMicrophone(micSelect.value))
@@ -72,11 +81,31 @@ document.addEventListener('DOMContentLoaded', () => {
       if (time) time.textContent = formatElapsed((Date.now() - startedAt) / 1000)
     }, REC_TIMER_MS)
   }
-  setRecordState('idle')
   const isListening = () => recordBtn?.dataset.state === 'listening'
 
+  // Dots in the header pill: whether each model is loading, ready or unusable.
+  // Recording is only offered once both are ready.
+  const sttDot = document.getElementById('stt-dot')
+  const llmDot = document.getElementById('llm-dot')
+  const modelsPill = document.getElementById('models-pill')
+  let resting: RecordState = 'loading'
+  const restingState = () => resting
+  const applyEngineStatus = (status: Awaited<ReturnType<typeof api.getEngineStatus>>) => {
+    const tips = [
+      sttDot ? renderEngineDot(sttDot, 'Transcripción', status.whisper) : '',
+      llmDot ? renderEngineDot(llmDot, 'Motor lingüístico', status.llm) : '',
+    ]
+    if (modelsPill) modelsPill.title = tips.filter(Boolean).join('\n')
+    resting = restingRecordState(status)
+    if (!isListening()) setRecordState(restingState())
+  }
+  setRecordState(restingState())
+  api.onEngineStatus(applyEngineStatus)
+  api.getEngineStatus().then(applyEngineStatus)
+
   const stopRecording = async () => {
-    setRecordState('idle')
+    setRecordState(restingState())
+    levelMeter?.reset()
     await audioRecorder.stopRecording() // sends the last buffered audio first
     api.sendAudioStop()
   }
@@ -88,9 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setRecordState('listening')
     try {
-      await audioRecorder.startRecording(pcm => api.sendAudioChunk(pcm))
+      await audioRecorder.startRecording(pcm => api.sendAudioChunk(pcm), level => levelMeter?.push(level))
     } catch (e) {
-      setRecordState('idle')
+      setRecordState(restingState())
+      levelMeter?.reset()
       view?.error(`No se pudo abrir el micrófono: ${e instanceof Error ? e.message : String(e)}`)
     }
   })
