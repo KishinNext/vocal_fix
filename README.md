@@ -17,12 +17,13 @@ Installers are published on the [Releases page](https://github.com/KishinNext/vo
 | System | File |
 | --- | --- |
 | macOS (Apple Silicon) | `VocalFix-<version>-arm64.dmg` |
-| Windows 10/11 (64-bit) | `VocalFix Setup <version>.exe` |
+| Windows 10/11 (64-bit) | `VocalFix-Setup-<version>.exe` |
 
 The installers are not signed with a developer certificate, so both systems warn the first time:
 
-- **macOS:** drag VocalFix to Applications. If macOS says the app is damaged or cannot be opened, run
-  `xattr -cr /Applications/VocalFix.app` once in Terminal and open it again.
+- **macOS:** drag VocalFix to Applications and open it. macOS says it "could not verify" the app: click
+  **Done**, open **System Settings → Privacy & Security**, and click **Open Anyway** next to VocalFix.
+  (Alternatively, run `xattr -cr /Applications/VocalFix.app` once in Terminal.)
 - **Windows:** on the SmartScreen dialog choose **More info → Run anyway**.
 
 After installing, open **Ajustes → Modelos Locales** and download one Whisper model and one LLM.
@@ -59,11 +60,16 @@ Models are not bundled: they are downloaded to your machine on first use.
 npm run dist   # writes the .dmg (on macOS) or the .exe (on Windows) to release/
 ```
 
-Each installer has to be built on its own system. The `Build installers` GitHub Actions workflow
-(`.github/workflows/build.yml`) builds both:
+Each installer has to be built on its own system, so releases are built by the `Build installers`
+GitHub Actions workflow (`.github/workflows/build.yml`):
 
-- **Manual run:** Actions tab → Build installers → Run workflow, then download the artifacts from the run.
-- **Release:** push a tag such as `v0.1.0`; the installers are attached to a GitHub Release.
+- **Release:** raise `version` in `package.json` in your branch and merge it into `main`. The workflow
+  builds both installers, creates the tag `v<version>` and publishes the GitHub Release. A merge that
+  keeps the version publishes nothing.
+- **Test build:** Actions tab → Build installers → Run workflow, then download the artifacts from the run.
+
+Installed apps look for a release newer than their own version, so the version in `package.json`
+is what makes them offer the update.
 
 ## Architecture
 - `electron/main.ts`: The main process. Handles window management and wires IPC.

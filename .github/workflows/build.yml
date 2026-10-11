@@ -1,18 +1,46 @@
-# Builds the installers: VocalFix-<version>.dmg on macOS and VocalFix Setup <version>.exe on Windows.
-# - Run it by hand from the Actions tab: the installers are attached to the run as artifacts.
-# - Push a tag like v0.1.0: the installers are also published as a GitHub Release.
+# Publishes a release when main gets a version that has none yet.
+#
+# To release: raise "version" in package.json in your branch and merge it into main.
+# This workflow then builds the installers, creates the tag v<version> and publishes
+# the release. A merge that keeps the version publishes nothing.
+#
+# It can also be run by hand from the Actions tab: that only builds the installers and
+# attaches them to the run as artifacts.
 name: Build installers
 
 on:
-  workflow_dispatch:
   push:
-    tags: ['v*']
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.read.outputs.tag }}
+      release: ${{ steps.read.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check whether this version was released
+        id: read
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -z "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "$tag has no release yet: it will be published."
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "$tag will not be published (already released, or a manual run)."
+          fi
+
   build:
+    needs: version
+    if: needs.version.outputs.release == 'true' || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -39,21 +67,31 @@ jobs:
           # No signing certificate: macOS gets an ad-hoc signature, Windows is unsigned
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      # latest.yml and the .blockmap are what the Windows updater reads
       - uses: actions/upload-artifact@v4
         with:
           name: VocalFix-${{ matrix.os }}
           path: |
             release/*.dmg
             release/*.exe
-          if-no-files-found: error
-
-      - name: Publish the release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          # latest.yml and the .blockmap are what the Windows updater reads
-          files: |
-            release/*.dmg
-            release/*.exe
             release/*.exe.blockmap
             release/latest.yml
+          if-no-files-found: error
+
+  release:
+    needs: [version, build]
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: installers/*
